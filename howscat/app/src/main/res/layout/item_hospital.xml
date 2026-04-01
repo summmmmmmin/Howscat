@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    app:cardBackgroundColor="@color/app_surface_elevated"
+    app:cardCornerRadius="@dimen/card_radius_medium"
+    app:cardElevation="@dimen/card_elevation_soft"
+    app:strokeColor="@color/app_outline"
+    app:strokeWidth="1dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="5dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_hospital_accent_bar" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/textFavoriteBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:background="@drawable/bg_accent_pill"
+                    android:text="찜"
+                    android:textStyle="bold"
+                    android:textSize="11sp"
+                    android:textColor="@color/app_on_primary_container"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/textHospitalName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="병원 이름"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:textColor="@color/app_on_surface"
+                    android:letterSpacing="-0.01" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFavorite"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:text=""
+                    android:contentDescription="찜"
+                    app:icon="@drawable/ic_heart_outline"
+                    app:iconPadding="0dp"
+                    app:iconTint="@color/app_on_surface_variant"
+                    app:cornerRadius="12dp" />
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="2dp"
+                    android:src="@drawable/ic_chevron_right"
+                    android:contentDescription="@null"
+                    app:tint="@color/app_on_surface_muted" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/textHospitalAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="주소"
+                android:textSize="13.5sp"
+                android:lineSpacingMultiplier="1.12"
+                android:textColor="@color/app_on_surface_variant" />
+
+            <TextView
+                android:id="@+id/textHospitalMeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="거리/24h/운영"
+                android:textSize="12.5sp"
+                android:textColor="@color/app_on_surface_muted"
+                android:background="@drawable/bg_chip_soft"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

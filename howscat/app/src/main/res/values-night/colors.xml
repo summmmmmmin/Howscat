@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="gradient_start">#1C1814</color>
+    <color name="gradient_mid">#16120F</color>
+    <color name="gradient_end">#0F0D0B</color>
+
+    <color name="app_background">#141210</color>
+    <color name="app_divider">#2E2924</color>
+
+    <color name="app_primary">#E4C76A</color>
+    <color name="app_primary_dark">#C9A94A</color>
+    <color name="app_primary_container">#3D3420</color>
+    <color name="app_on_primary">#141210</color>
+    <color name="app_on_primary_container">#F5E6B8</color>
+
+    <color name="app_secondary">#8FAFA0</color>
+    <color name="app_secondary_container">#1F2A24</color>
+
+    <color name="app_on_surface">#F4F1EC</color>
+    <color name="app_on_surface_muted">#9A938A</color>
+    <color name="app_on_surface_variant">#B5ADA3</color>
+    <color name="app_outline">#3D3832</color>
+    <color name="app_outline_strong">#5C554C</color>
+
+    <color name="app_surface">#1E1A17</color>
+    <color name="app_surface_elevated">#26221E</color>
+    <color name="app_surface_muted">#1A1714</color>
+
+    <color name="cat_surface_card">@color/app_surface_elevated</color>
+    <color name="cat_chart_bg">@color/app_surface_elevated</color>
+
+    <color name="calendar_day_today_number">#FBBF24</color>
+</resources>

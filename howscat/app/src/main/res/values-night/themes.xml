@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Base.Theme.Howscat" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/app_primary</item>
+        <item name="colorOnPrimary">@color/app_on_primary</item>
+        <item name="colorPrimaryContainer">@color/app_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/app_on_primary_container</item>
+        <item name="colorSecondary">@color/app_secondary</item>
+        <item name="colorSurface">@color/app_surface</item>
+        <item name="colorOnSurface">@color/app_on_surface</item>
+        <item name="colorOutline">@color/app_outline</item>
+        <item name="android:colorBackground">@color/app_background</item>
+        <item name="android:statusBarColor">@color/app_background</item>
+        <item name="android:navigationBarColor">@color/app_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowBackground">@drawable/bg_screen_gradient</item>
+        <item name="materialButtonStyle">@style/Widget.Howscat.Button.Primary</item>
+        <item name="bottomNavigationStyle">@style/Widget.Howscat.BottomNav</item>
+    </style>
+</resources>

@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Howscat</string>
+    <string name="nav_home">홈</string>
+    <string name="nav_hospital">병원</string>
+    <string name="nav_cat">케어</string>
+    <string name="nav_calendar">캘린더</string>
+    <string name="nav_mypage">마이</string>
+
+    <string-array name="home_tips">
+        <item>물은 항상 신선한 걸로! 급수기는 주 1회 세척해 주세요.</item>
+        <item>사료 바꾼 날은 배변 상태를 하루 더 관찰해 주세요.</item>
+        <item>비만 체크는 “정확한 몸무게”가 시작이에요. 같은 시간대에 재기!</item>
+        <item>토했다면 메모까지 남기면 다음 진료 때 도움이 돼요.</item>
+        <item>캘린더에 기록을 남기면 자동 알림이 더 똑똑해져요.</item>
+        <item>손톱 정리 후에는 칭찬+간식으로 스트레스 낮추기.</item>
+        <item>급격한 간식 증가는 체지방률에 바로 영향을 줘요.</item>
+        <item>새 고양이(또는 새 사료)는 첫 주가 제일 중요해요. 천천히 적응!</item>
+    </string-array>
+</resources>

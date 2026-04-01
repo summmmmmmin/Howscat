@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="screen_padding_horizontal">20dp</dimen>
+    <dimen name="screen_padding_vertical">16dp</dimen>
+    <dimen name="card_radius_large">22dp</dimen>
+    <dimen name="card_radius_medium">18dp</dimen>
+    <dimen name="card_elevation_soft">3dp</dimen>
+    <dimen name="card_elevation_float">6dp</dimen>
+</resources>

@@ -1,0 +1,78 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+// local.properties 의 api.base.url 을 사용 (없으면 에뮬레이터→PC 로컬 서버용 기본값)
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+def apiBaseUrl = (localProperties.getProperty('api.base.url') ?: 'http://10.0.2.2:8080/').trim()
+if (!apiBaseUrl.endsWith('/')) {
+    apiBaseUrl += '/'
+}
+def apiBaseUrlRelease = (localProperties.getProperty('api.base.url.release') ?: apiBaseUrl).trim()
+if (!apiBaseUrlRelease.endsWith('/')) {
+    apiBaseUrlRelease += '/'
+}
+def kakaoRestKey = (localProperties.getProperty('kakao.rest.api.key') ?: '').trim()
+
+android {
+    namespace 'com.example.howscat'
+    compileSdk {
+        version = release(36)
+    }
+
+    // BuildConfig 빌드 필드(buildConfigField)를 사용하므로 필수 설정
+    buildFeatures {
+        buildConfig = true
+    }
+
+    defaultConfig {
+        applicationId "com.example.howscat"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        debug {
+            // PC IP가 바뀌면 프로젝트 루트 local.properties 의 api.base.url 만 고치고 Sync/Rebuild
+            // 실제 기기: PC와 같은 Wi‑Fi, ipconfig 로 IPv4 확인
+            // 에뮬레이터: PC에서 서버가 localhost:8080 이면 http://10.0.2.2:8080/
+            buildConfigField "String", "API_BASE_URL", "\"${apiBaseUrl}\""
+            buildConfigField "String", "KAKAO_REST_API_KEY", "\"${kakaoRestKey}\""
+        }
+        release {
+            buildConfigField "String", "API_BASE_URL", "\"${apiBaseUrlRelease}\""
+            buildConfigField "String", "KAKAO_REST_API_KEY", "\"${kakaoRestKey}\""
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.15.0'
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.constraintlayout
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation libs.retrofit
+    implementation libs.converter.gson
+    implementation libs.security.crypto
+    implementation libs.material.v1100
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+}

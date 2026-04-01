@@ -1,0 +1,3 @@
+[submodule "springserver"]
+	path = springserver
+	url = https://github.com/summmmmmmin/Howscat_backend.git

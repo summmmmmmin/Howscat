@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="@color/app_surface"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="1dp"
+    app:strokeColor="@color/app_outline"
+    app:strokeWidth="1dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <View
+            android:id="@+id/viewCalendarAccent"
+            android:layout_width="4dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="10dp"
+            android:background="@color/app_primary"
+            android:alpha="0.95" />
+
+        <FrameLayout
+            android:id="@+id/frameCalendarType"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_icon_circle_soft"
+            android:padding="8dp">
+
+            <ImageView
+                android:id="@+id/imageCalendarType"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_calendar"
+                app:tint="@color/app_primary_dark" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/textCalendarType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="메모"
+                android:textStyle="bold"
+                android:textColor="@color/app_on_surface"
+                android:textSize="12.5sp"
+                android:background="@drawable/bg_chip_soft"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp" />
+
+            <TextView
+                android:id="@+id/textCalendarPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="내용"
+                android:textColor="@color/app_on_surface_variant"
+                android:textSize="14sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/textCalendarSecondary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="09:30"
+            android:textSize="11.5sp"
+            android:textColor="@color/app_on_surface_muted"
+            android:background="@drawable/bg_chip_soft"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/imageCalendarChevron"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_chevron_right"
+            android:contentDescription="@null" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

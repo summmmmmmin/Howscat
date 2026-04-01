@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent"
+    android:fillViewport="true"
+    android:clipToPadding="false"
+    android:paddingBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/screen_padding_horizontal"
+        android:paddingEnd="@dimen/screen_padding_horizontal"
+        android:paddingTop="4dp"
+        android:paddingBottom="24dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/app_surface"
+            app:cardCornerRadius="@dimen/card_radius_large"
+            app:cardElevation="@dimen/card_elevation_soft"
+            app:strokeColor="@color/app_outline"
+            app:strokeWidth="1dp"
+            android:layout_marginBottom="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="18dp"
+                android:paddingBottom="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="건강 기록"
+                    android:textStyle="bold"
+                    android:textColor="@color/app_on_surface"
+                    android:textSize="16sp"
+                    android:letterSpacing="-0.01" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="18dp">
+
+                    <!-- 물·사료 -->
+                    <LinearLayout
+                        android:id="@+id/calculateButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless">
+
+                        <FrameLayout
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_icon_circle_gold"
+                            android:padding="15dp">
+
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/ic_weight_scale"
+                                android:contentDescription="@null"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:text="물·사료"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="급여량 계산"
+                            android:textSize="11sp"
+                            android:textColor="@color/app_on_surface_muted" />
+                    </LinearLayout>
+
+                    <!-- 비만도 -->
+                    <LinearLayout
+                        android:id="@+id/obesity_calculateButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless">
+
+                        <FrameLayout
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_icon_circle_green"
+                            android:padding="15dp">
+
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/ic_heart_filled"
+                                android:contentDescription="@null"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:text="비만도"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="체형 체크"
+                            android:textSize="11sp"
+                            android:textColor="@color/app_on_surface_muted" />
+                    </LinearLayout>
+
+                    <!-- 토 분석 -->
+                    <LinearLayout
+                        android:id="@+id/vomit_analyzeButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless">
+
+                        <FrameLayout
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_icon_circle_amber"
+                            android:padding="15dp">
+
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/ic_vomit_drop"
+                                android:contentDescription="@null"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:text="토 분석"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="색·형태 분석"
+                            android:textSize="11sp"
+                            android:textColor="@color/app_on_surface_muted" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- 두 번째 행: 투약, 화장실, 진료 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="16dp">
+
+                    <!-- 투약 기록 -->
+                    <LinearLayout
+                        android:id="@+id/btnMedication"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless">
+
+                        <FrameLayout
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_icon_circle_rose"
+                            android:padding="15dp">
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/ic_vaccine_syringe"
+                                android:contentDescription="@null"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:text="투약 기록"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="약 복용 관리"
+                            android:textSize="11sp"
+                            android:textColor="@color/app_on_surface_muted" />
+                    </LinearLayout>
+
+                    <!-- 화장실 기록 -->
+                    <LinearLayout
+                        android:id="@+id/btnLitterBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless">
+
+                        <FrameLayout
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_icon_circle_blue"
+                            android:padding="15dp">
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/ic_checkup_clipboard"
+                                android:contentDescription="@null"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:text="화장실"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="배변 기록"
+                            android:textSize="11sp"
+                            android:textColor="@color/app_on_surface_muted" />
+                    </LinearLayout>
+
+                    <!-- 진료 기록 -->
+                    <LinearLayout
+                        android:id="@+id/btnVetVisit"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless">
+
+                        <FrameLayout
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_icon_circle_green"
+                            android:padding="15dp">
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/ic_hospital"
+                                android:contentDescription="@null"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:text="진료 기록"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="병원 방문"
+                            android:textSize="11sp"
+                            android:textColor="@color/app_on_surface_muted" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 체중 목표 카드 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="@dimen/card_radius_large"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/app_outline"
+            app:strokeWidth="1dp"
+            android:layout_marginBottom="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_premium"
+                android:padding="18dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_weight_scale"
+                        android:contentDescription="@null"
+                        app:tint="@color/app_primary_dark" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:text="체중 목표"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/app_on_surface" />
+
+                    <LinearLayout
+                        android:id="@+id/btnWeightGoal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_accent_pill"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingTop="5dp"
+                        android:paddingBottom="5dp"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="설정"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_on_primary_container" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="현재"
+                            android:textSize="11sp"
+                            android:textColor="@color/app_on_surface_muted" />
+                        <TextView
+                            android:id="@+id/textGoalCurrentWeightDisplay"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="— kg"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_primary_dark"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:contentDescription="@null"
+                        android:layout_gravity="center_vertical"
+                        app:tint="@color/app_on_surface_muted" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="목표"
+                            android:textSize="11sp"
+                            android:textColor="@color/app_on_surface_muted" />
+                        <TextView
+                            android:id="@+id/textGoalTargetWeightDisplay"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="미설정"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/app_secondary"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progressWeightGoal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:max="100"
+                    android:progress="0"
+                    app:trackColor="@color/app_outline"
+                    app:indicatorColor="@color/app_primary"
+                    app:trackCornerRadius="4dp"
+                    app:trackThickness="7dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/cat_chart_bg"
+            app:cardCornerRadius="@dimen/card_radius_large"
+            app:cardElevation="@dimen/card_elevation_soft"
+            app:strokeColor="@color/app_outline"
+            app:strokeWidth="1dp"
+            android:layout_marginBottom="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="18dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="최근 기록"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/app_on_surface"
+                    android:letterSpacing="-0.01" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="몸무게"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/app_on_surface_variant"
+                    android:layout_marginTop="14dp" />
+
+                <com.example.howscat.widget.SimpleLineChartView
+                    android:id="@+id/chartWeightTrend"
+                    android:layout_width="match_parent"
+                    android:layout_height="168dp"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="비만도"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/app_on_surface_variant"
+                    android:layout_marginTop="14dp" />
+
+                <com.example.howscat.widget.SimpleLineChartView
+                    android:id="@+id/chartObesityTrend"
+                    android:layout_width="match_parent"
+                    android:layout_height="140dp"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="토 분석 추세 (7일)"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/app_on_surface_variant"
+                    android:layout_marginTop="14dp" />
+
+                <com.example.howscat.widget.SimpleLineChartView
+                    android:id="@+id/chartVomitTrend"
+                    android:layout_width="match_parent"
+                    android:layout_height="132dp"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/textVomitTrendSummary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="토 기록 추세를 분석 중..."
+                    android:textSize="12.5sp"
+                    android:textColor="@color/app_on_surface_muted" />
+
+                <LinearLayout
+                    android:id="@+id/containerObesityHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>
