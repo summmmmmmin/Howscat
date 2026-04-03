@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="100" alt="Howscat" />
+<img src="https://github.com/user-attachments/assets/67246f78-c630-4e92-bde9-d976159038cd" width="100" alt="Howscat" />
 
 # Howscat
 
