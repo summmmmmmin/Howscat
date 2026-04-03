@@ -79,10 +79,10 @@
 | 언어 | Java 17 |
 | 인증 | JWT — Access Token + Refresh Token |
 | DB 접근 | JdbcTemplate (ORM 미사용, 쿼리 직접 제어) |
-| AI | Google Gemini 2.0 Flash — Vision (이미지 분석) + Text (건강 요약) |
+| AI | Google Gemini 2.5 Flash — Vision (이미지 분석) + Text (건강 요약) |
 | 외부 API | Kakao Local (병원 검색 프록시) |
 | 스키마 관리 | ApplicationRunner `@Order(1)` — 배포 시 DDL 자동 실행 |
-| 배포 | Railway (MySQL + Spring Boot 컨테이너) |
+| 배포 | Railway (MySQL + Redis + Spring Boot 컨테이너) |
 
 ---
 
