@@ -8,6 +8,7 @@ public class VomitAnalysisResponse {
     private String riskLevel;
     private Boolean urgent;
     private String aiGuide;
+    private String aiResult;
 
     public VomitAnalysisResponse() {
     }
@@ -18,5 +19,6 @@ public class VomitAnalysisResponse {
     public String getRiskLevel() { return riskLevel; }
     public Boolean getUrgent() { return urgent; }
     public String getAiGuide() { return aiGuide; }
+    public String getAiResult() { return aiResult; }
 }
 
