@@ -136,7 +136,6 @@ public class VomitAnalyzeActivity extends AppCompatActivity {
 
                     VomitAnalysisResponse res = response.body();
                     String risk = res.getRiskLevel() != null ? res.getRiskLevel() : "MEDIUM";
-                    String aiGuide = res.getAiGuide() != null ? res.getAiGuide() : res.getGuideText();
 
                     String riskLabel;
                     switch (risk) {
@@ -145,7 +144,21 @@ public class VomitAnalyzeActivity extends AppCompatActivity {
                         default:     riskLabel = "🟡 보통"; break;
                     }
 
-                    textVomitResult.setText("위험도: " + riskLabel + "\n\n" + (aiGuide != null ? aiGuide : ""));
+                    StringBuilder sb = new StringBuilder();
+                    String aiResult = res.getAiResult();
+                    if (aiResult != null && !aiResult.isEmpty()) {
+                        sb.append("🔍 분석 결과: ").append(aiResult).append("\n");
+                    }
+                    sb.append("⚠️ 위험도: ").append(riskLabel);
+                    String guideText = res.getGuideText();
+                    if (guideText != null && !guideText.isEmpty()) {
+                        sb.append("\n\n").append(guideText);
+                    }
+                    String aiGuide = res.getAiGuide();
+                    if (aiGuide != null && !aiGuide.isEmpty()) {
+                        sb.append("\n\n💬 ").append(aiGuide);
+                    }
+                    textVomitResult.setText(sb.toString());
                 }
 
                 @Override
