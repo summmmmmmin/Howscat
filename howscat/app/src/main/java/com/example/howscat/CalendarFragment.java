@@ -1606,18 +1606,16 @@ public class CalendarFragment extends Fragment {
     private void showVomitDetailDialog(CalendarEventItem item) {
         if (item.getId() == null) return;
 
-        String content = item.getSubtitle() != null ? item.getSubtitle() : "";
-        String riskLevel = item.getRiskLevel();
         String color = vomitColorKorean(item.getVomitColor());
+        String risk = riskLevelKorean(item.getRiskLevel());
         String guide = item.getGuideText();
         LinearLayout container = buildDetailContainer("토 분석");
         addDetailLine(container, "색상: " + color, false);
+        addDetailLine(container, "위험도: " + risk, false);
 
         if (guide != null && !guide.isEmpty()) {
             addDetailLine(container, guide, false);
         }
-        // subtitle 자체에 "위험도 ... · ..."가 포함되어 있을 수 있으니, 여기서는 그대로 1회만 보여줍니다.
-        addDetailLine(container, content.isEmpty() ? "메모 없음" : content, true);
 
         addVomitImageView(container, item.getImagePath());
 
