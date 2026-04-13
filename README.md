@@ -7,7 +7,7 @@
 **AI 기반 고양이 건강 종합 관리 — Android + Spring Boot 풀스택 개인 프로젝트**
 
 [![Android](https://img.shields.io/badge/Android-Java-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot_3-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot_4-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io)
 [![Railway](https://img.shields.io/badge/Live_Deploy-Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white)](https://railway.app)
 [![Gemini](https://img.shields.io/badge/Gemini_2.5_Flash-4285F4?style=flat-square&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
 [![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com)
@@ -75,10 +75,11 @@
 
 | 항목 | 내용 |
 |------|------|
-| 프레임워크 | Spring Boot 3 |
+| 프레임워크 | Spring Boot 4.0.2 |
 | 언어 | Java 17 |
 | 인증 | JWT — Access Token + Refresh Token |
-| DB 접근 | JdbcTemplate (ORM 미사용, 쿼리 직접 제어) |
+| DB 접근 | Spring Data JPA + JdbcTemplate (단순 CRUD는 JPA, 복잡 집계·UNION 쿼리는 JdbcTemplate) |
+| Cache / 인증 저장 | Redis — Refresh Token 저장 / Blacklist / AI 요약 캐시 |
 | AI | Google Gemini 2.5 Flash — Vision (이미지 분석) + Text (건강 요약) |
 | 외부 API | Kakao Local (병원 검색 프록시) |
 | 스키마 관리 | ApplicationRunner `@Order(1)` — 배포 시 DDL 자동 실행 |
@@ -107,7 +108,7 @@
 - Kakao Local 프록시 — GPS 좌표 기반 주변 병원 검색
 - SchemaInitializer — 앱 시작 시 16개 테이블 자동 생성 · 컬럼 마이그레이션
 
-↓ &nbsp;&nbsp; JdbcTemplate
+↓ &nbsp;&nbsp; Spring Data JPA / JdbcTemplate
 
 **🗄️ MySQL — Railway**
 - 16개 테이블 (앱 시작 시 자동 생성, 수동 마이그레이션 불필요)
@@ -130,7 +131,7 @@
 Railway는 빈 DB를 제공한다. `SchemaInitializer`(ApplicationRunner)로 앱 시작 시 16개 테이블을 자동 생성하고, 기존 테이블에 컬럼이 없을 경우 `INFORMATION_SCHEMA`를 조회해 ALTER만 실행 — 재배포 시 수동 마이그레이션 0건.
 
 ### 캘린더 단일 쿼리
-메모·건강일정·체중·구토 5개 테이블을 `UNION ALL`로 묶어 날짜순 단일 응답으로 반환. 각 이벤트 타입(MEMO / HEALTH_CHECKUP / HEALTH_VACCINE / WEIGHT / VOMIT)을 클라이언트에서 구분해 아이콘·색상을 다르게 표시.
+메모·건강일정·체중·구토 5개 소스를 `UNION ALL`로 묶고, 투약·화장실·진료 3개는 별도 쿼리로 합산해 총 8개 데이터 소스를 날짜순 단일 응답으로 반환. 각 이벤트 타입(MEMO / HEALTH_CHECKUP / HEALTH_VACCINE / WEIGHT / VOMIT / MEDICATION / LITTER_BOX / VET_VISIT)을 클라이언트에서 구분해 아이콘·색상을 다르게 표시.
 
 ### 케어 결과 서버 복원
 물·사료 계산 결과를 서버 DB(`weight_record`)에도 저장해두어, 앱 재설치·재로그인 후에도 홈 화면에서 마지막 계산값을 자동으로 복원.
