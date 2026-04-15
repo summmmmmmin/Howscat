@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/67246f78-c630-4e92-bde9-d976159038cd" width="100" alt="Howscat" />
+<img src="https://github.com/user-attachments/assets/effb89ac-a9a1-420d-b4f8-406f97cca8d6" width="100" alt="Howscat" />
 
 # Howscat
 
@@ -21,15 +21,15 @@
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/33737b42-9f6e-4f7b-9660-cca921389d68" width="18%" />
-<img src="https://github.com/user-attachments/assets/aca692e2-2de2-4b3b-aba5-7030b32bf6fe" width="18%" />
-<img src="https://github.com/user-attachments/assets/be43fb1b-f53e-4df3-abd1-4014b98de1f1" width="18%" />
+<img src="https://github.com/user-attachments/assets/3bb22c20-2fc8-4ac6-8614-15b5fef036a3" width="18%" />
+<img src="https://github.com/user-attachments/assets/5984e81f-96cd-4dc8-8462-6f0158cfe864" width="18%" />
+<img src="https://github.com/user-attachments/assets/e6bb90cb-b1de-4576-94ac-7cca03b43f01" width="18%" />
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/6fe4edf0-ebd3-420c-a380-55df162136f9" width="18%" />
-<img src="https://github.com/user-attachments/assets/50be5eb1-9df7-436c-a3bc-6967a8e24dda" width="18%" />
-<img src="https://github.com/user-attachments/assets/ae3a940e-1308-431d-b402-c5313743c461" width="18%" />
+<img src="https://github.com/user-attachments/assets/c9160ce7-c5e0-4f71-88e0-d26c81179b89" width="18%" />
+<img src="https://github.com/user-attachments/assets/b53b835c-26ff-4520-838d-fa487a56a6b2" width="18%" />
+<img src="https://github.com/user-attachments/assets/b9e667ec-97ea-4787-839c-6cfae208e7dd" width="18%" />
 
 </div>
 
