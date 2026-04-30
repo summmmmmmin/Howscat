@@ -39,7 +39,7 @@
 
 고양이를 키우면서 건강 기록을 제대로 관리할 앱이 없었다.
 단순 기록 앱이 아닌 **AI 분석 + 실알림 + 실배포**까지 끝낸 프로젝트를 목표로 삼았다.
-백엔드 설계부터 Android UI, Railway 배포까지 전 과정을 혼자 다뤘다.
+백엔드 설계부터 Android UI, AWS EC2 배포까지 전 과정을 혼자 다뤘다.
 
 ---
 
@@ -74,7 +74,6 @@
 | 로컬 저장 | SharedPreferences — 인증 / 프로필 / 케어 결과 / 알람 파일 분리 |
 | 이미지 | BitmapFactory (inSampleSize=4 직접 다운샘플링) · Camera/Gallery Intent → Base64 인코딩 |
 | 커스텀 View | SimpleLineChartView — 외부 라이브러리 없이 Canvas API로 직접 구현 (체중·비만도·구토 7일 그래프) |
-| Min / Target SDK | 24 / 36 |
 
 ### Spring Boot 백엔드
 
