@@ -114,7 +114,7 @@
 
 ↓ &nbsp;&nbsp; Spring Data JPA / JdbcTemplate
 
-**MySQL — Railway**
+**MySQL — AWS RDS**
 - 16개 테이블 (앱 시작 시 자동 생성, 수동 마이그레이션 불필요)
 
 </td>
