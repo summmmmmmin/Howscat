@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/67246f78-c630-4e92-bde9-d976159038cd" width="100" alt="Howscat" />
+<img src="https://github.com/user-attachments/assets/effb89ac-a9a1-420d-b4f8-406f97cca8d6" width="100" alt="Howscat" />
 
 # Howscat
 
@@ -21,15 +21,15 @@
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/33737b42-9f6e-4f7b-9660-cca921389d68" width="18%" />
-<img src="https://github.com/user-attachments/assets/aca692e2-2de2-4b3b-aba5-7030b32bf6fe" width="18%" />
-<img src="https://github.com/user-attachments/assets/be43fb1b-f53e-4df3-abd1-4014b98de1f1" width="18%" />
+<img src="https://github.com/user-attachments/assets/3bb22c20-2fc8-4ac6-8614-15b5fef036a3" width="18%" />
+<img src="https://github.com/user-attachments/assets/5984e81f-96cd-4dc8-8462-6f0158cfe864" width="18%" />
+<img src="https://github.com/user-attachments/assets/e6bb90cb-b1de-4576-94ac-7cca03b43f01" width="18%" />
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/6fe4edf0-ebd3-420c-a380-55df162136f9" width="18%" />
-<img src="https://github.com/user-attachments/assets/50be5eb1-9df7-436c-a3bc-6967a8e24dda" width="18%" />
-<img src="https://github.com/user-attachments/assets/ae3a940e-1308-431d-b402-c5313743c461" width="18%" />
+<img src="https://github.com/user-attachments/assets/c9160ce7-c5e0-4f71-88e0-d26c81179b89" width="18%" />
+<img src="https://github.com/user-attachments/assets/b53b835c-26ff-4520-838d-fa487a56a6b2" width="18%" />
+<img src="https://github.com/user-attachments/assets/b9e667ec-97ea-4787-839c-6cfae208e7dd" width="18%" />
 
 </div>
 
@@ -47,16 +47,16 @@
 
 | 기능 | 설명 |
 |------|------|
-| 🤖 **AI 토사물 분석** | 사진 찍으면 색상·형태·위험도 자동 분석 (Gemini Vision) |
-| 📊 **AI 건강 요약** | 최근 7일 기록을 종합해 한 줄 건강 조언 생성 |
-| ⚖️ **체중 & 사료 계산** | 몸무게 입력 시 적정 물·사료량 자동 계산 및 서버 저장 |
-| 📏 **비만도 검사** | 허리·뒷다리 치수로 체지방률 추정 및 레벨 판정 |
-| 📅 **통합 캘린더** | 메모·체중·구토·건강검진·예방접종을 한 화면에서 관리 |
-| 🔔 **정확 알림** | 건강검진·예방접종 D-7 / D-1 / D-Day 3단계 + 스누즈 |
-| 🏥 **주변 병원 검색** | GPS 기반 반경 내 동물병원 검색 + 즐겨찾기 |
-| 💊 **투약 기록** | 투약 일정 등록·알림·이력 관리 |
-| 🚽 **화장실 기록** | 배변 횟수·상태 기록 및 이력 관리 |
-| 🐱 **다중 고양이** | 고양이 여러 마리 전환 지원 |
+| **AI 토사물 분석** | 사진 찍으면 색상·형태·위험도 자동 분석 (Gemini Vision) |
+| **AI 건강 요약** | 최근 7일 기록을 종합해 한 줄 건강 조언 생성 |
+| **체중 & 사료 계산** | 몸무게 입력 시 적정 물·사료량 자동 계산 및 서버 저장 |
+| **비만도 검사** | 허리·뒷다리 치수로 체지방률 추정 및 레벨 판정 |
+| **통합 캘린더** | 메모·체중·구토·건강검진·예방접종을 한 화면에서 관리 |
+| **정확 알림** | 건강검진·예방접종 D-7 / D-1 / D-Day 3단계 + 스누즈 |
+| **주변 병원 검색** | GPS 기반 반경 내 동물병원 검색 + 즐겨찾기 |
+| **투약 기록** | 투약 일정 등록·알림·이력 관리 |
+| **화장실 기록** | 배변 횟수·상태 기록 및 이력 관리 |
+| **다중 고양이** | 고양이 여러 마리 전환 지원 |
 
 ---
 
@@ -98,14 +98,14 @@
 <tr>
 <td width="100%">
 
-**📱 Android App**
+**Android App**
 - SharedPreferences(`auth`) — accessToken / refreshToken / lastViewedCatId
 - Retrofit2 → AuthInterceptor로 모든 요청에 Bearer 토큰 자동 첨부
 - 401 수신 시 AuthAuthenticator가 토큰 갱신 후 원 요청 자동 재시도
 
 ↓ &nbsp;&nbsp; HTTPS + JWT
 
-**⚙️ Spring Boot — Railway 배포**
+**Spring Boot — Railway 배포**
 - 인증 API `/api/users/` — login · signup · refresh
 - 케어 API `/cats/{catId}/` — 40개 이상 엔드포인트, catId 소유권 검증
 - Gemini Vision — 토사물 이미지 Base64 → 색상·형태·위험도 JSON 분석
@@ -115,7 +115,7 @@
 
 ↓ &nbsp;&nbsp; Spring Data JPA / JdbcTemplate
 
-**🗄️ MySQL — Railway**
+**MySQL — Railway**
 - 16개 테이블 (앱 시작 시 자동 생성, 수동 마이그레이션 불필요)
 
 </td>
