@@ -8,7 +8,7 @@
 
 [![Android](https://img.shields.io/badge/Android-Java-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot_4-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io)
-[![Railway](https://img.shields.io/badge/Live_Deploy-Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white)](https://railway.app)
+[![AWS](https://img.shields.io/badge/Live_Deploy-AWS_EC2-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com)
 [![Gemini](https://img.shields.io/badge/Gemini_2.5_Flash-4285F4?style=flat-square&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
 [![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com)
 [![minSdk](https://img.shields.io/badge/minSdk_24-Android_7.0+-green?style=flat-square)](#)
@@ -88,7 +88,7 @@
 | AI | Google Gemini 2.5 Flash — Vision (이미지 분석) + Text (건강 요약) |
 | 외부 API | Kakao Local (병원 검색 프록시) |
 | 스키마 관리 | ApplicationRunner `@Order(1)` — 배포 시 DDL 자동 실행 |
-| 배포 | Railway (MySQL + Redis + Spring Boot 컨테이너) |
+| 배포 | AWS EC2 — Docker 컨테이너 · GitHub Actions CI/CD |
 
 ---
 
@@ -105,7 +105,7 @@
 
 ↓ &nbsp;&nbsp; HTTPS + JWT
 
-**Spring Boot — Railway 배포**
+**Spring Boot — AWS EC2 배포**
 - 인증 API `/api/users/` — login · signup · refresh
 - 케어 API `/cats/{catId}/` — 40개 이상 엔드포인트, catId 소유권 검증
 - Gemini Vision — 토사물 이미지 Base64 → 색상·형태·위험도 JSON 분석
@@ -130,7 +130,7 @@
 모든 요청에 토큰을 자동 첨부하고, 401 응답 시 `AuthAuthenticator`가 토큰을 갱신한 뒤 원 요청을 투명하게 재시도한다. 갱신 실패 시에만 로그인 화면으로 이동.
 
 ### 고양이별 알림 격리 & 신뢰성
-`setInexactRepeating` 대신 `setExactAndAllowWhileIdle` 1회 예약 + Receiver 자기 재예약 패턴을 적용해 Doze 모드에서도 정시 발송을 보장한다. Request Code는 `catId × 1,000,000 + scheduleId × 10 + offsetDay` 공식으로 고양이·일정·슬롯 간 충돌을 방지한다. D-7 / D-1 / D-Day 3단계 알림, 스누즈 1시간 재알림 지원.
+`setInexactRepeating` 대신 `setExactAndAllowWhileIdle` 1회 예약 + Receiver 자기 재예약 패턴을 적용해 Doze 모드에서도 정시 발송을 보장한다. Request Code는 스케줄러별로 공식이 다르다 — 투약: `catId × 1,000,000 + medicationId × 10 + slot`, 건강일정: `scheduleId × 10 + offsetDay`. 고양이·일정·슬롯 간 충돌을 방지한다. D-7 / D-1 / D-Day 3단계 알림, 스누즈 1시간 재알림 지원.
 
 ### 재부팅 후 알람 자동 복구
 AlarmManager 알람은 재부팅 시 OS가 전부 삭제한다. `BootReceiver`가 `BOOT_COMPLETED` / `LOCKED_BOOT_COMPLETED`를 수신하면 SharedPreferences StringSet에 저장된 모든 catId를 복원해 건강검진·투약·급여 알람을 전부 재등록한다. 마지막으로 조회한 고양이 ID도 이중 안전장치로 추가해 알람 소실 케이스를 원천 차단했다.
@@ -173,6 +173,6 @@ Railway는 빈 DB를 제공한다. `SchemaInitializer`(ApplicationRunner)로 앱
 
 <div align="center">
 
-**Spring Boot · Railway 실배포 · Gemini 2.5 Flash · 1인 풀스택 개발**
+**Spring Boot · AWS EC2 실배포 · Gemini 2.5 Flash · 1인 풀스택 개발**
 
 </div>
