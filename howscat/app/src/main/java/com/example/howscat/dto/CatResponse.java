@@ -8,6 +8,7 @@ public class CatResponse {
     private String breed;
     private String obesityStatus;
     private String vomitingSeverity;
+    private Float weightGoal;
 
     public Long getId() {
         return id;
@@ -31,5 +32,9 @@ public class CatResponse {
 
     public String getVomitingSeverity() {
         return vomitingSeverity;
+    }
+
+    public Float getWeightGoal() {
+        return weightGoal;
     }
 }

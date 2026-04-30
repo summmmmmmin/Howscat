@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 
 import com.example.howscat.dto.MedicationItem;
 import com.example.howscat.network.ApiService;
@@ -29,10 +30,12 @@ import retrofit2.Response;
  */
 public class MedicationAlarmScheduler {
 
+    private static final String PREF_NAME = "medication_alarm";
     private static final String PREF_KEY_PREFIX = "medication_alarm_ids_cat_";
 
     public static void syncAlarms(Context context, Long catId) {
         if (context == null || catId == null || catId <= 0) return;
+        BootReceiver.registerCatId(context, catId); // 부팅 복구용 catId 저장
 
         String catName = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
                 .getString("lastViewedCatName", "");
@@ -86,17 +89,21 @@ public class MedicationAlarmScheduler {
 
         if ("AS_NEEDED".equals(freq)) return; // 필요시 복용은 자동 알람 없음
 
-        scheduleSlot(context, catId, catName, medicationId, hour, minute, 0, med.getName());
+        String endDate = med.getEndDate() != null ? med.getEndDate() : "";
+        scheduleSlot(context, catId, catName, medicationId, hour, minute, 0, med.getName(), endDate);
 
         if ("TWICE_DAILY".equals(freq)) {
-            scheduleSlot(context, catId, catName, medicationId, (hour + 12) % 24, minute, 1, med.getName());
+            int hour2 = med.getAlarmHour2() != null ? med.getAlarmHour2() : (hour + 12) % 24;
+            int minute2 = med.getAlarmMinute2() != null ? med.getAlarmMinute2() : minute;
+            scheduleSlot(context, catId, catName, medicationId, hour2, minute2, 1, med.getName(), endDate);
         }
 
         saveAlarmId(context, catId, medicationId);
     }
 
     private static void scheduleSlot(Context context, Long catId, String catName,
-                                      long medicationId, int hour, int minute, int slot, String name) {
+                                      long medicationId, int hour, int minute, int slot,
+                                      String name, String endDate) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
 
@@ -104,6 +111,10 @@ public class MedicationAlarmScheduler {
         intent.setAction(MedicationAlarmReceiver.ACTION_ALARM);
         intent.putExtra("medicationId", medicationId);
         intent.putExtra("catId", (long) catId);
+        intent.putExtra("alarmHour", hour);
+        intent.putExtra("alarmMinute", minute);
+        intent.putExtra("slot", slot);
+        intent.putExtra("endDate", endDate != null ? endDate : "");
         intent.putExtra("medName", name != null ? name : "약");
         intent.putExtra("catName", catName != null ? catName : "");
 
@@ -121,8 +132,12 @@ public class MedicationAlarmScheduler {
             cal.add(Calendar.DAY_OF_MONTH, 1);
         }
 
-        am.setInexactRepeating(AlarmManager.RTC_WAKEUP,
-                cal.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pi);
+        // 정확한 시각에 알람을 1회 예약 — 알람이 울린 뒤 MedicationAlarmReceiver에서 내일 치를 재예약
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pi);
+        } else {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pi);
+        }
     }
 
     public static void cancelAlarmForMedication(Context context, Long catId, Long medicationId) {
@@ -146,7 +161,7 @@ public class MedicationAlarmScheduler {
                 if (m != null && m.getMedicationId() != null) newIds.add(m.getMedicationId());
             }
         }
-        SharedPreferences prefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE);
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         String csv = prefs.getString(PREF_KEY_PREFIX + catId, "");
         for (Long oldId : parseIds(csv)) {
             if (!newIds.contains(oldId)) cancelAlarmForMedication(context, catId, oldId);
@@ -155,7 +170,7 @@ public class MedicationAlarmScheduler {
     }
 
     private static void saveAlarmId(Context context, Long catId, Long medId) {
-        SharedPreferences prefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE);
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         Set<Long> set = parseIds(prefs.getString(PREF_KEY_PREFIX + catId, ""));
         set.add(medId);
         saveAlarmIds(context, catId, set);
@@ -169,7 +184,7 @@ public class MedicationAlarmScheduler {
             sb.append(id);
             first = false;
         }
-        context.getSharedPreferences("auth", Context.MODE_PRIVATE)
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .edit().putString(PREF_KEY_PREFIX + catId, sb.toString()).apply();
     }
 
@@ -185,5 +200,26 @@ public class MedicationAlarmScheduler {
     private static int buildRequestCode(Long catId, long medicationId, int slot) {
         long seed = catId * 1_000_000L + medicationId * 10L + slot;
         return (int) (Math.abs(seed) % Integer.MAX_VALUE);
+    }
+
+    /**
+     * alarm_cat_ids에 저장된 모든 catId의 투약 알람을 AlarmManager에서 취소합니다.
+     * 로그아웃 시 alarm_cat_ids prefs를 지우기 전에 호출해야 합니다.
+     */
+    public static void cancelAll(Context context) {
+        SharedPreferences catIdPrefs = context.getSharedPreferences(
+                "alarm_cat_ids", Context.MODE_PRIVATE);
+        Set<String> rawIds = catIdPrefs.getStringSet("all_alarm_cat_ids", new HashSet<>());
+
+        SharedPreferences medPrefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        for (String catIdStr : rawIds) {
+            try {
+                Long catId = Long.parseLong(catIdStr);
+                String csv = medPrefs.getString(PREF_KEY_PREFIX + catId, "");
+                for (Long medId : parseIds(csv)) {
+                    cancelAlarmForMedication(context, catId, medId);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 }

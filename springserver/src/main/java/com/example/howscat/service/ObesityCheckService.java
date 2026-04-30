@@ -10,7 +10,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,12 +23,13 @@ import java.util.List;
 public class ObesityCheckService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final CatOwnershipService catOwnershipService;
 
     public ObesityCheckResponse analyzeAndSave(Long catId,
                                                  ObesityCheckRequest request,
                                                  Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         double bodyFatPercent = nvl(request.getBodyFatPercent());
         double weightKg = nvl(request.getWeightKg());
@@ -97,7 +97,7 @@ public class ObesityCheckService {
      */
     public void recordCareWeight(Long catId, CareWeightRequest req, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
         if (req == null || req.getWeightKg() == null || req.getWeightKg() <= 0) {
             throw new IllegalArgumentException("weightKg is required");
         }
@@ -120,15 +120,14 @@ public class ObesityCheckService {
         );
         if (existingId != null) {
             jdbcTemplate.update(
-                    "UPDATE weight_record SET weight = ?, recommended_water_ml = ?, recommended_food_g = ? WHERE weight_record_id = ?",
+                    "UPDATE weight_record SET weight = ?, recommended_water_ml = ?, recommended_food_g = ?, recorded_at = NOW() WHERE weight_record_id = ?",
                     weightKg, waterMl > 0 ? waterMl : null, foodG > 0 ? foodG : null, existingId
             );
             return;
         }
-        Timestamp ts = Timestamp.valueOf(date.atStartOfDay());
         jdbcTemplate.update(
-                "INSERT INTO weight_record (cat_id, weight, recorded_at, recommended_water_ml, recommended_food_g) VALUES (?, ?, ?, ?, ?)",
-                catId, weightKg, ts, waterMl > 0 ? waterMl : null, foodG > 0 ? foodG : null
+                "INSERT INTO weight_record (cat_id, weight, recorded_at, recommended_water_ml, recommended_food_g) VALUES (?, ?, NOW(), ?, ?)",
+                catId, weightKg, waterMl > 0 ? waterMl : null, foodG > 0 ? foodG : null
         );
     }
 
@@ -138,7 +137,7 @@ public class ObesityCheckService {
             Authentication authentication
     ) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         int l = limit != null && limit > 0 ? limit : 7;
 
@@ -178,7 +177,7 @@ public class ObesityCheckService {
             Authentication authentication
     ) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         int l = limit != null && limit > 0 ? limit : 7;
 
@@ -210,20 +209,6 @@ public class ObesityCheckService {
             ));
         });
         return items;
-    }
-
-    private void assertCatBelongsToUser(Long catId, Integer userId) {
-        Long ownerUserId = jdbcTemplate.query(
-                "SELECT user_id FROM cat WHERE cat_id = ?",
-                new Object[]{catId},
-                rs -> rs.next() ? rs.getLong("user_id") : null
-        );
-        if (ownerUserId == null) {
-            throw new IllegalArgumentException("cat not found");
-        }
-        if (ownerUserId.longValue() != userId.longValue()) {
-            throw new SecurityException("cat does not belong to user");
-        }
     }
 
     private double nvl(Double v) {

@@ -7,5 +7,8 @@
     <cloud-backup>
         <exclude domain="sharedpref" path="auth.xml"/>
         <exclude domain="sharedpref" path="auth_encrypted.xml"/>
+        <exclude domain="sharedpref" path="profile.xml"/>
+        <exclude domain="sharedpref" path="care_result.xml"/>
+        <exclude domain="sharedpref" path="."/>
     </cloud-backup>
 </data-extraction-rules>

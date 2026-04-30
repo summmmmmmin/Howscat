@@ -19,7 +19,10 @@ public final class HospitalFavoritePrefs {
     }
 
     private static SharedPreferences prefs(Context c) {
-        return c.getApplicationContext().getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        String userId = c.getApplicationContext()
+                .getSharedPreferences("auth", Context.MODE_PRIVATE)
+                .getString("loginId", "guest");
+        return c.getApplicationContext().getSharedPreferences(PREF + "_" + userId, Context.MODE_PRIVATE);
     }
 
     public static boolean isFavorite(Context c, String kakaoPlaceId) {
@@ -60,6 +63,10 @@ public final class HospitalFavoritePrefs {
             sb.append(id);
         }
         prefs(c).edit().putString(KEY_IDS, sb.toString()).apply();
+    }
+
+    public static void clearForCurrentUser(Context c) {
+        prefs(c).edit().clear().apply();
     }
 
     /** 디버그용 */

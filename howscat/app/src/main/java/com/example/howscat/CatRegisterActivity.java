@@ -118,36 +118,22 @@ public class CatRegisterActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     Log.d("cat", "등록 성공");
                     Toast.makeText(CatRegisterActivity.this, name + " 등록 완료!", Toast.LENGTH_SHORT).show();
-                    // 등록 직후 catId를 서버에서 조회해 SharedPreferences에 저장
-                    api.getUserCats().enqueue(new Callback<List<CatResponse>>() {
-                        @Override
-                        public void onResponse(Call<List<CatResponse>> call, Response<List<CatResponse>> r) {
-                            if (r.isSuccessful() && r.body() != null && !r.body().isEmpty()) {
-                                // 가장 마지막(최신) 고양이가 방금 등록한 고양이
-                                List<CatResponse> cats = r.body();
-                                CatResponse newCat = cats.get(cats.size() - 1);
-                                long newCatId = newCat.getId() != null ? newCat.getId() : -1L;
-                                getSharedPreferences("auth", MODE_PRIVATE).edit()
-                                        .putLong("lastViewedCatId", newCatId)
-                                        .putString("lastViewedCatName", newCat.getName() != null ? newCat.getName() : "")
-                                        .apply();
-                                // 새 고양이에 맞게 케어 데이터 초기화
-                                CareResultPrefs.clear(CatRegisterActivity.this);
-                            }
-                            Intent intent = new Intent(CatRegisterActivity.this, HomeActivity.class);
-                            intent.putExtra("catName", name);
-                            startActivity(intent);
-                            finish();
-                        }
-                        @Override
-                        public void onFailure(Call<List<CatResponse>> call, Throwable t) {
-                            CareResultPrefs.clear(CatRegisterActivity.this);
-                            Intent intent = new Intent(CatRegisterActivity.this, HomeActivity.class);
-                            intent.putExtra("catName", name);
-                            startActivity(intent);
-                            finish();
-                        }
-                    });
+                    // 서버 응답에서 catId를 직접 파싱해 SharedPreferences에 저장
+                    long newCatId = -1L;
+                    if (response.body() != null && response.body().getCatId() != null) {
+                        newCatId = response.body().getCatId();
+                    }
+                    if (newCatId > 0) {
+                        getSharedPreferences("auth", MODE_PRIVATE).edit()
+                                .putLong("lastViewedCatId", newCatId)
+                                .putString("lastViewedCatName", name)
+                                .apply();
+                    }
+                    CareResultPrefs.clear(CatRegisterActivity.this);
+                    Intent intent = new Intent(CatRegisterActivity.this, HomeActivity.class);
+                    intent.putExtra("catName", name);
+                    startActivity(intent);
+                    finish();
                 } else {
                     Log.d("cat", "등록 실패: " + response.code());
                     Toast.makeText(CatRegisterActivity.this, "등록에 실패했습니다. 다시 시도해 주세요.", Toast.LENGTH_SHORT).show();

@@ -132,9 +132,18 @@ public class HomeActivity extends AppCompatActivity {
         }
         try {
             Uri uri = Uri.parse(uriStr);
+            // 썸네일용으로 1/4 크기로 축소해 메모리 누수 방지
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = 4;
             Bitmap bitmap = BitmapFactory.decodeStream(
-                    getContentResolver().openInputStream(uri));
+                    getContentResolver().openInputStream(uri), null, opts);
             if (bitmap != null) {
+                // 이전 Bitmap 명시 해제
+                android.graphics.drawable.Drawable prev = imageTopBarProfile.getDrawable();
+                if (prev instanceof android.graphics.drawable.BitmapDrawable) {
+                    Bitmap old = ((android.graphics.drawable.BitmapDrawable) prev).getBitmap();
+                    if (old != null && !old.isRecycled()) old.recycle();
+                }
                 imageTopBarProfile.setImageBitmap(bitmap);
                 imageTopBarProfile.setPadding(0, 0, 0, 0);
                 androidx.core.widget.ImageViewCompat.setImageTintList(imageTopBarProfile, null);

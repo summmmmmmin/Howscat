@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.howscat.CareResultPrefs;
 import com.example.howscat.dto.LoginRequest;
 import com.example.howscat.dto.LoginResponse;
 import com.example.howscat.network.ApiService;
@@ -108,8 +109,15 @@ public class LoginActivity extends AppCompatActivity {
                     finish();
 
                 } else {
-                    Toast.makeText(LoginActivity.this, "로그인 실패", Toast.LENGTH_SHORT).show();
-                    Log.d("LOGIN_CODE", "code: " + response.code());
+                    String msg;
+                    if (response.code() == 401 || response.code() == 400) {
+                        msg = "아이디 또는 비밀번호가 올바르지 않습니다.";
+                    } else if (response.code() >= 500) {
+                        msg = "서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+                    } else {
+                        msg = "로그인 실패 (오류 코드: " + response.code() + ")";
+                    }
+                    Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -129,11 +137,21 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    // 🔹 SharedPreferences 초기화
     private void clearAuth() {
-        getSharedPreferences("auth", MODE_PRIVATE)
-                .edit()
-                .clear()
-                .apply();
+        // 1. userId 스코핑된 케어 결과는 auth 삭제 전에 먼저 지워야 올바른 키를 읽을 수 있음
+        CareResultPrefs.clear(this);
+
+        // 2. 실제 AlarmManager PendingIntent를 취소 (prefs 지우기 전에 ID를 읽어야 하므로 먼저 실행)
+        FeedingAlarmScheduler.cancelAll(this);
+        MedicationAlarmScheduler.cancelAll(this);
+        HealthScheduleAlarmScheduler.cancelAll(this);
+
+        // 3. 모든 SharedPreferences 초기화
+        getSharedPreferences("auth",                  MODE_PRIVATE).edit().clear().apply();
+        getSharedPreferences("profile",               MODE_PRIVATE).edit().clear().apply();
+        getSharedPreferences("medication_alarm",      MODE_PRIVATE).edit().clear().apply();
+        getSharedPreferences("feeding_alarm",         MODE_PRIVATE).edit().clear().apply();
+        getSharedPreferences("health_schedule_alarm", MODE_PRIVATE).edit().clear().apply();
+        getSharedPreferences("alarm_cat_ids",         MODE_PRIVATE).edit().clear().apply();
     }
 }

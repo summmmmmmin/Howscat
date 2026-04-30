@@ -5,6 +5,7 @@ public class ApiResponse {
     private boolean success;
     private String message;
     private Integer userId;
+    private Long catId;
 
     public boolean isSuccess() {
         return success;
@@ -15,4 +16,6 @@ public class ApiResponse {
     }
 
     public Integer getUserId() { return userId; }
+
+    public Long getCatId() { return catId; }
 }

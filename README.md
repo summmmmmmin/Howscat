@@ -66,13 +66,14 @@
 
 | 항목 | 내용 |
 |------|------|
-| 언어 | Java 17 |
+| 언어 | Java 11 |
 | 빌드 | Gradle 8.x |
 | 네트워크 | Retrofit 2 + OkHttp3 |
 | 인증 처리 | AuthInterceptor (토큰 자동 첨부) + AuthAuthenticator (401 시 자동 갱신) |
 | 알림 | AlarmManager — Android 12+ 정확 알람 권한 분기 |
 | 로컬 저장 | SharedPreferences — 인증 / 프로필 / 케어 결과 / 알람 파일 분리 |
-| 이미지 | Glide · Camera/Gallery Intent → Base64 인코딩 |
+| 이미지 | BitmapFactory (inSampleSize=4 직접 다운샘플링) · Camera/Gallery Intent → Base64 인코딩 |
+| 커스텀 View | SimpleLineChartView — 외부 라이브러리 없이 Canvas API로 직접 구현 (체중·비만도·구토 7일 그래프) |
 | Min / Target SDK | 24 / 36 |
 
 ### Spring Boot 백엔드
@@ -128,14 +129,20 @@
 ### JWT 자동 갱신
 모든 요청에 토큰을 자동 첨부하고, 401 응답 시 `AuthAuthenticator`가 토큰을 갱신한 뒤 원 요청을 투명하게 재시도한다. 갱신 실패 시에만 로그인 화면으로 이동.
 
-### 고양이별 알림 격리
-고양이 여러 마리 시 알람 ID 충돌을 방지하기 위해 고양이별 SharedPreferences 키를 분리. D-7 / D-1 / D-Day 3단계 알림, 스누즈 1시간 재알림 지원.
+### 고양이별 알림 격리 & 신뢰성
+`setInexactRepeating` 대신 `setExactAndAllowWhileIdle` 1회 예약 + Receiver 자기 재예약 패턴을 적용해 Doze 모드에서도 정시 발송을 보장한다. Request Code는 `catId × 1,000,000 + scheduleId × 10 + offsetDay` 공식으로 고양이·일정·슬롯 간 충돌을 방지한다. D-7 / D-1 / D-Day 3단계 알림, 스누즈 1시간 재알림 지원.
+
+### 재부팅 후 알람 자동 복구
+AlarmManager 알람은 재부팅 시 OS가 전부 삭제한다. `BootReceiver`가 `BOOT_COMPLETED` / `LOCKED_BOOT_COMPLETED`를 수신하면 SharedPreferences StringSet에 저장된 모든 catId를 복원해 건강검진·투약·급여 알람을 전부 재등록한다. 마지막으로 조회한 고양이 ID도 이중 안전장치로 추가해 알람 소실 케이스를 원천 차단했다.
 
 ### Railway 무중단 스키마
 Railway는 빈 DB를 제공한다. `SchemaInitializer`(ApplicationRunner)로 앱 시작 시 16개 테이블을 자동 생성하고, 기존 테이블에 컬럼이 없을 경우 `INFORMATION_SCHEMA`를 조회해 ALTER만 실행 — 재배포 시 수동 마이그레이션 0건.
 
 ### 캘린더 단일 쿼리
-메모·건강일정·체중·구토 5개 소스를 `UNION ALL`로 묶고, 투약·화장실·진료 3개는 별도 쿼리로 합산해 총 8개 데이터 소스를 날짜순 단일 응답으로 반환. 각 이벤트 타입(MEMO / HEALTH_CHECKUP / HEALTH_VACCINE / WEIGHT / VOMIT / MEDICATION / LITTER_BOX / VET_VISIT)을 클라이언트에서 구분해 아이콘·색상을 다르게 표시.
+메모·건강일정·체중·구토 5개 소스를 `UNION ALL`로 묶고, 투약·화장실·진료 3개는 별도 쿼리로 합산해 총 8개 데이터 소스를 날짜순 단일 응답으로 반환. 각 이벤트 타입(MEMO / HEALTH_CHECKUP / HEALTH_VACCINE / WEIGHT / VOMIT / MEDICATION / LITTER / VET_VISIT)을 클라이언트에서 구분해 아이콘·색상을 다르게 표시.
+
+### RER 기반 영양 계산
+안정 시 에너지 요구량 RER = (체중 × 30) + 70 kcal에 연령 계수를 곱해 DER를 산출하고, 사료 kcal/g으로 나눠 1일 권장 사료량을 계산한다. 체중 × 50ml로 하루 권장 음수량도 함께 제공한다.
 
 ### 케어 결과 서버 복원
 물·사료 계산 결과를 서버 DB(`weight_record`)에도 저장해두어, 앱 재설치·재로그인 후에도 홈 화면에서 마지막 계산값을 자동으로 복원.
@@ -152,7 +159,7 @@ Railway는 빈 DB를 제공한다. `SchemaInitializer`(ApplicationRunner)로 앱
 | `HomeFragment` | AI 요약 · 건강 일정 카드 · 케어 요약 복원 |
 | `CatFragment` | 체중·비만도·사료 계산 · 투약·화장실·진료 기록 |
 | `CalendarFragment` | 통합 이벤트 캘린더 · 건강 일정 등록 |
-| `HospitalFragment` | Kakao 반경 병원 검색 · 즐겨찾기 |
+| `HospitalFragment` | 서버 API 통해 주변 병원 검색 (Kakao Local 프록시) · 즐겨찾기 서버 저장 |
 | `VomitAnalyzeActivity` | 토사물 AI 분석 화면 |
 | `CareResultPrefs` | 케어 요약 고양이별 SharedPreferences 저장 |
 | `HealthScheduleAlarmScheduler` | D-7 / D-1 / D-Day 알람 등록 |
@@ -160,7 +167,7 @@ Railway는 빈 DB를 제공한다. `SchemaInitializer`(ApplicationRunner)로 앱
 | `MedicationAlarmScheduler` | 투약 알람 |
 | `network/AuthInterceptor` | 모든 요청에 Bearer 토큰 자동 첨부 |
 | `network/AuthAuthenticator` | 401 → 자동 토큰 갱신 |
-| `network/ApiService` | Retrofit 인터페이스 (40개 엔드포인트) |
+| `network/ApiService` | Retrofit 인터페이스 (44개 엔드포인트) |
 
 ---
 

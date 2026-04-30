@@ -173,7 +173,17 @@ public class VomitAnalyzeActivity extends AppCompatActivity {
     private void onImageSelected(Uri uri) {
         selectedImageUri = uri;
         resultSaved = false;
-        imageVomitPreview.setImageURI(uri);
+        // 미리보기는 1/4 크기로 축소해 OOM 방지 (전송용 인코딩은 별도 처리)
+        try {
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = 4;
+            Bitmap bmp = BitmapFactory.decodeStream(
+                    getContentResolver().openInputStream(uri), null, opts);
+            if (bmp != null) imageVomitPreview.setImageBitmap(bmp);
+            else imageVomitPreview.setImageURI(uri);
+        } catch (Exception e) {
+            imageVomitPreview.setImageURI(uri); // fallback
+        }
         if (layoutImagePlaceholder != null) {
             layoutImagePlaceholder.setVisibility(View.GONE);
         }

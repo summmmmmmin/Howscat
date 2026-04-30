@@ -129,6 +129,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:paddingTop="8dp"
                     android:paddingBottom="6dp">
 
@@ -141,13 +142,18 @@
                         android:textColor="@color/cat_text_secondary"
                         android:textSize="14.5sp" />
 
-                    <TextView
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCheckupAction"
+                        style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="수정"
+                        android:textSize="13sp"
                         android:textColor="@color/app_primary_dark"
-                        android:textStyle="bold"
-                        android:textSize="13sp" />
+                        android:textAllCaps="false"
+                        android:minWidth="0dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="0dp" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -155,6 +161,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:paddingTop="6dp"
                     android:paddingBottom="2dp">
 
@@ -167,13 +174,18 @@
                         android:textColor="@color/cat_text_secondary"
                         android:textSize="14.5sp" />
 
-                    <TextView
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnVaccineAction"
+                        style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="수정"
+                        android:textSize="13sp"
                         android:textColor="@color/app_primary_dark"
-                        android:textStyle="bold"
-                        android:textSize="13sp" />
+                        android:textAllCaps="false"
+                        android:minWidth="0dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="0dp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

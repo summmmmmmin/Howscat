@@ -19,11 +19,12 @@ import java.util.List;
 public class CalendarService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final CatOwnershipService catOwnershipService;
 
     public List<CalendarEventItem> listCalendarEvents(Long catId, LocalDate from, LocalDate to,
                                                        Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         // ── 기존 핵심 쿼리 (항상 실행) ─────────────────────────────────────────
         String baseSql = ""
@@ -103,8 +104,8 @@ public class CalendarService {
                 + "  UNION ALL "
                 + "  SELECT wr.weight_record_id AS event_id, "
                 + "         'WEIGHT' AS event_type, "
-                + "         DATE(wr.recorded_at) AS event_date, "
-                + "         TIME_FORMAT(wr.recorded_at, '%H:%i') AS event_time, "
+                + "         DATE(CONVERT_TZ(wr.recorded_at, '+00:00', '+09:00')) AS event_date, "
+                + "         TIME_FORMAT(CONVERT_TZ(wr.recorded_at, '+00:00', '+09:00'), '%H:%i') AS event_time, "
                 + "         '몸무게 기록' AS title, "
                 + "         CONCAT(FORMAT(wr.weight, 2), 'kg') AS subtitle, "
                 + "         NULL AS image_path, "
@@ -117,12 +118,12 @@ public class CalendarService {
                 + "         NULL AS health_type_id "
                 + "  FROM weight_record wr "
                 + "  WHERE wr.cat_id = ? "
-                + "    AND DATE(wr.recorded_at) BETWEEN ? AND ? "
+                + "    AND DATE(CONVERT_TZ(wr.recorded_at, '+00:00', '+09:00')) BETWEEN ? AND ? "
                 + "  UNION ALL "
                 + "  SELECT vr.vomit_record_id AS event_id, "
                 + "         'VOMIT' AS event_type, "
-                + "         DATE(vr.created_at) AS event_date, "
-                + "         TIME_FORMAT(vr.created_at, '%H:%i') AS event_time, "
+                + "         DATE(CONVERT_TZ(vr.created_at, '+00:00', '+09:00')) AS event_date, "
+                + "         TIME_FORMAT(CONVERT_TZ(vr.created_at, '+00:00', '+09:00'), '%H:%i') AS event_time, "
                 + "         '토 분석 기록' AS title, "
                 + "         COALESCE("
                 + "           CONCAT(COALESCE(vr.ai_result, CONCAT('위험도 ', vs.severity_level)), ' · ', COALESCE(vr.memo, '메모 없음')),"
@@ -139,7 +140,7 @@ public class CalendarService {
                 + "  FROM vomit_record vr "
                 + "  LEFT JOIN vomit_status vs ON vs.vomit_status_id = vr.vomit_status_id "
                 + "  WHERE vr.cat_id = ? "
-                + "    AND DATE(vr.created_at) BETWEEN ? AND ? "
+                + "    AND DATE(CONVERT_TZ(vr.created_at, '+00:00', '+09:00')) BETWEEN ? AND ? "
                 + ") t "
                 + "ORDER BY t.event_date ASC, t.event_time ASC";
 
@@ -165,22 +166,29 @@ public class CalendarService {
     private List<CalendarEventItem> queryMedication(Long catId, LocalDate from, LocalDate to) {
         try {
             return jdbcTemplate.query(
-                    "SELECT medication_id, start_date, name, dosage, frequency, alarm_enabled, notes " +
-                            "FROM medication WHERE cat_id = ? AND DATE(start_date) BETWEEN ? AND ?",
-                    new Object[]{catId, from, to},
-                    (rs, i) -> new CalendarEventItem(
-                            rs.getLong("medication_id"),
-                            "MEDICATION",
-                            rs.getDate("start_date") != null ? rs.getDate("start_date").toString() : null,
-                            null,
-                            "투약 기록",
-                            buildMedSubtitle(rs.getString("name"), rs.getString("dosage"), rs.getString("frequency")),
-                            null, null, null,
-                            rs.getString("notes"),
-                            null,
-                            rs.getInt("alarm_enabled") == 1,
-                            null, null
-                    )
+                    "SELECT medication_id, start_date, end_date, name, dosage, frequency, alarm_enabled, notes " +
+                            "FROM medication WHERE cat_id = ? " +
+                            "AND start_date <= ? AND (end_date IS NULL OR end_date >= ?)",
+                    new Object[]{catId, to, from},
+                    (rs, i) -> {
+                        java.sql.Date sqlStart = rs.getDate("start_date");
+                        LocalDate startDate = sqlStart != null ? sqlStart.toLocalDate() : from;
+                        // 뷰 범위 밖에서 시작한 약은 뷰 시작일에 표시
+                        LocalDate eventDate = startDate.isBefore(from) ? from : startDate;
+                        return new CalendarEventItem(
+                                rs.getLong("medication_id"),
+                                "MEDICATION",
+                                eventDate.toString(),
+                                null,
+                                "투약 기록",
+                                buildMedSubtitle(rs.getString("name"), rs.getString("dosage"), rs.getString("frequency")),
+                                null, null, null,
+                                rs.getString("notes"),
+                                null,
+                                rs.getInt("alarm_enabled") == 1,
+                                null, null
+                        );
+                    }
             );
         } catch (Exception e) {
             return List.of();
@@ -288,20 +296,6 @@ public class CalendarService {
         return ((Number) o).longValue();
     }
 
-    private void assertCatBelongsToUser(Long catId, Integer userId) {
-        Long ownerUserId = jdbcTemplate.query(
-                "SELECT user_id FROM cat WHERE cat_id = ?",
-                new Object[]{catId},
-                rs -> rs.next() ? rs.getLong("user_id") : null
-        );
-        if (ownerUserId == null) {
-            throw new IllegalArgumentException("cat not found");
-        }
-        if (ownerUserId.longValue() != userId.longValue()) {
-            throw new SecurityException("cat does not belong to user");
-        }
-    }
-
     public void updateCalendarMemo(Long catId,
                                      Long memoId,
                                      String content,
@@ -392,7 +386,7 @@ public class CalendarService {
             Authentication authentication
     ) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
         jdbcTemplate.update(
                 "DELETE FROM calendar_memo WHERE cat_id = ? AND user_id = ?",
                 catId, userId
@@ -405,7 +399,7 @@ public class CalendarService {
             Authentication authentication
     ) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
         int deleted = jdbcTemplate.update(
                 "DELETE FROM calendar_memo WHERE calendar_memo_id = ? AND cat_id = ? AND user_id = ?",
                 memoId, catId, userId

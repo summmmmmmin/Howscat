@@ -14,8 +14,15 @@ public final class CareResultPrefs {
     private CareResultPrefs() {
     }
 
+    private static SharedPreferences prefs(Context ctx) {
+        String userId = ctx.getApplicationContext()
+                .getSharedPreferences("auth", Context.MODE_PRIVATE)
+                .getString("loginId", "guest");
+        return ctx.getSharedPreferences(PREF + "_" + userId, Context.MODE_PRIVATE);
+    }
+
     public static void saveWaterFood(Context ctx, long catId, double waterMl, double foodG, double weightKg) {
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+        prefs(ctx).edit()
                 .putFloat("water_ml_" + catId, (float) waterMl)
                 .putFloat("food_g_" + catId, (float) foodG)
                 .putFloat("weight_kg_" + catId, (float) weightKg)
@@ -26,7 +33,7 @@ public final class CareResultPrefs {
     }
 
     public static void saveObesity(Context ctx, long catId, double waterMl, double foodG, String level) {
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+        prefs(ctx).edit()
                 .putFloat("water_ml_" + catId, (float) waterMl)
                 .putFloat("food_g_" + catId, (float) foodG)
                 .putString("source_" + catId, "obesity")
@@ -37,12 +44,12 @@ public final class CareResultPrefs {
     }
 
     public static boolean hasSummaryForCat(Context ctx, long catId) {
-        return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+        return prefs(ctx)
                 .getBoolean("has_water_food_" + catId, false);
     }
 
     public static String getSummaryText(Context ctx, long catId) {
-        SharedPreferences p = ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        SharedPreferences p = prefs(ctx);
         if (!p.getBoolean("has_water_food_" + catId, false)) return "";
         float w = p.getFloat("water_ml_" + catId, 0);
         float f = p.getFloat("food_g_" + catId, 0);
@@ -51,18 +58,18 @@ public final class CareResultPrefs {
     }
 
     public static boolean hasWeightFromWaterFood(Context ctx, long catId) {
-        return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+        return prefs(ctx)
                 .getBoolean("has_weight_from_water_" + catId, false);
     }
 
     public static float getLastWeightKgForCat(Context ctx, long catId) {
-        return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+        return prefs(ctx)
                 .getFloat("weight_kg_" + catId, 0f);
     }
 
     /** 해당 고양이의 케어 결과만 초기화 */
     public static void clearForCat(Context ctx, long catId) {
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+        prefs(ctx).edit()
                 .remove("water_ml_" + catId)
                 .remove("food_g_" + catId)
                 .remove("weight_kg_" + catId)
@@ -75,7 +82,7 @@ public final class CareResultPrefs {
 
     /** 모든 고양이의 케어 결과 전체 초기화 (새 계정 등록 시 사용) */
     public static void clear(Context ctx) {
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().clear().apply();
+        prefs(ctx).edit().clear().apply();
     }
 
     /** 서버에서 오는 영문 레벨을 짧은 한글로 */

@@ -28,6 +28,7 @@ import com.example.howscat.dto.VetVisitCreateRequest;
 import com.example.howscat.dto.VetVisitItem;
 import com.example.howscat.dto.VomitAnalysisRequest;
 import com.example.howscat.dto.VomitAnalysisResponse;
+import com.example.howscat.dto.WeightGoalRequest;
 import com.example.howscat.dto.WeightHistoryItem;
 
 import java.util.List;
@@ -52,7 +53,7 @@ public interface ApiService {
     @POST("/api/users/logout")
     Call<ApiResponse> logout();
 
-    @POST("cats")
+    @POST("/cats")
     Call<ApiResponse> registerCat(@Body CatRequest request);
 
     @GET("/cats/{id}")
@@ -63,6 +64,9 @@ public interface ApiService {
 
     @POST("/cats/select/{catId}")
     Call<Void> selectCat(@Path("catId") Long catId);
+
+    @PUT("/cats/{catId}/weight-goal")
+    Call<Void> updateWeightGoal(@Path("catId") Long catId, @Body WeightGoalRequest request);
 
     // ----------------------------
     // Hospitals

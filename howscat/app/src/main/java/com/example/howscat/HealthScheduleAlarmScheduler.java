@@ -35,6 +35,7 @@ public class HealthScheduleAlarmScheduler {
 
     public static void syncAlarms(Context context, Long catId) {
         if (context == null || catId == null || catId <= 0) return;
+        BootReceiver.registerCatId(context, catId); // 부팅 복구용 catId 저장
 
         ApiService api = RetrofitClient.getApiService(context);
         api.getHealthSchedules(catId).enqueue(new Callback<List<HealthScheduleItem>>() {
@@ -101,12 +102,32 @@ public class HealthScheduleAlarmScheduler {
             triggerCal.add(Calendar.DAY_OF_MONTH, -offsetDay);
 
             long nowMillis = System.currentTimeMillis();
-            int guard = 0;
-            while (triggerCal.getTimeInMillis() <= nowMillis && guard < 3 && effectiveCycleMonths > 0) {
-                triggerCal.add(Calendar.MONTH, effectiveCycleMonths);
-                guard++;
+
+            if (triggerCal.getTimeInMillis() <= nowMillis) {
+                // 알람일이 오늘인데 9시가 이미 지난 경우: 이벤트 날짜가 아직 미래이면 즉시(1분 후) 발송
+                // 알람일 자체가 오늘인지 확인
+                Calendar alertDay = Calendar.getInstance();
+                alertDay.setTime(parsedDate);
+                alertDay.add(Calendar.DAY_OF_MONTH, -offsetDay);
+                Calendar today = Calendar.getInstance();
+                boolean isTodayAlertDay =
+                        alertDay.get(Calendar.YEAR)  == today.get(Calendar.YEAR) &&
+                        alertDay.get(Calendar.MONTH) == today.get(Calendar.MONTH) &&
+                        alertDay.get(Calendar.DAY_OF_MONTH) == today.get(Calendar.DAY_OF_MONTH);
+
+                if (isTodayAlertDay) {
+                    // 오늘이 알람일이고 9시가 지났으면 → 1분 뒤로 즉시 예약
+                    triggerCal.setTimeInMillis(nowMillis + 60_000L);
+                } else {
+                    // 알람일이 이미 지난 경우 → 다음 사이클로 넘김
+                    int guard = 0;
+                    while (triggerCal.getTimeInMillis() <= nowMillis && guard < 3 && effectiveCycleMonths > 0) {
+                        triggerCal.add(Calendar.MONTH, effectiveCycleMonths);
+                        guard++;
+                    }
+                    if (triggerCal.getTimeInMillis() <= nowMillis) continue;
+                }
             }
-            if (triggerCal.getTimeInMillis() <= nowMillis) continue;
 
             Intent intent = new Intent(context, HealthScheduleAlarmReceiver.class);
             intent.setAction(HealthScheduleAlarmReceiver.ACTION_ALARM);
@@ -227,6 +248,31 @@ public class HealthScheduleAlarmScheduler {
         }
         context.getSharedPreferences("health_schedule_alarm", Context.MODE_PRIVATE)
                 .edit().putString(prefKey(catId), sb.toString()).apply();
+    }
+
+    /**
+     * alarm_cat_ids에 저장된 모든 catId의 건강 일정 알람을 AlarmManager에서 취소합니다.
+     * 로그아웃 시 alarm_cat_ids prefs를 지우기 전에 호출해야 합니다.
+     */
+    public static void cancelAll(Context context) {
+        SharedPreferences catIdPrefs = context.getSharedPreferences(
+                "alarm_cat_ids", Context.MODE_PRIVATE);
+        Set<String> rawIds = catIdPrefs.getStringSet("all_alarm_cat_ids", new HashSet<>());
+
+        SharedPreferences schedPrefs = context.getSharedPreferences(
+                "health_schedule_alarm", Context.MODE_PRIVATE);
+        for (String catIdStr : rawIds) {
+            try {
+                long catId = Long.parseLong(catIdStr);
+                String csv = schedPrefs.getString(prefKey(catId), "");
+                if (csv == null || csv.trim().isEmpty()) continue;
+                for (String p : csv.split(",")) {
+                    try {
+                        cancelAlarm(context, Long.parseLong(p.trim()));
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ignored) {}
+        }
     }
 }
 

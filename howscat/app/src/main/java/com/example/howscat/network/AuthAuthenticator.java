@@ -86,7 +86,24 @@ public class AuthAuthenticator implements Authenticator {
     private void redirectToLogin(SharedPreferences prefs) {
         if (redirecting) return;
         redirecting = true;
-        prefs.edit().clear().apply();
+
+        // 1. userId 스코핑된 케어 결과는 auth 삭제 전에 먼저 지워야 올바른 키를 읽을 수 있음
+        com.example.howscat.CareResultPrefs.clear(context);
+
+        // 2. AlarmManager PendingIntent 취소 (prefs 지우기 전에 ID를 읽어야 하므로 먼저 실행)
+        com.example.howscat.FeedingAlarmScheduler.cancelAll(context);
+        com.example.howscat.MedicationAlarmScheduler.cancelAll(context);
+        com.example.howscat.HealthScheduleAlarmScheduler.cancelAll(context);
+
+        // 3. 모든 SharedPreferences 초기화
+        prefs.edit().clear().apply(); // auth
+        context.getSharedPreferences("profile",               Context.MODE_PRIVATE).edit().clear().apply();
+        context.getSharedPreferences("medication_alarm",      Context.MODE_PRIVATE).edit().clear().apply();
+        context.getSharedPreferences("feeding_alarm",         Context.MODE_PRIVATE).edit().clear().apply();
+        context.getSharedPreferences("health_schedule_alarm", Context.MODE_PRIVATE).edit().clear().apply();
+        context.getSharedPreferences("alarm_cat_ids",         Context.MODE_PRIVATE).edit().clear().apply();
+
+        RetrofitClient.reset();
         new Handler(Looper.getMainLooper()).post(() -> {
             try {
                 Class<?> loginClass = Class.forName(context.getPackageName() + ".LoginActivity");

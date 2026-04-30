@@ -9,11 +9,14 @@ public class MedicationCreateRequest {
     private Boolean alarmEnabled;
     private Integer alarmHour;
     private Integer alarmMinute;
+    private Integer alarmHour2;
+    private Integer alarmMinute2;
     private String notes;
 
     public MedicationCreateRequest(String name, String dosage, String frequency,
                                     String startDate, String endDate,
                                     Boolean alarmEnabled, Integer alarmHour, Integer alarmMinute,
+                                    Integer alarmHour2, Integer alarmMinute2,
                                     String notes) {
         this.name = name;
         this.dosage = dosage;
@@ -23,6 +26,8 @@ public class MedicationCreateRequest {
         this.alarmEnabled = alarmEnabled;
         this.alarmHour = alarmHour;
         this.alarmMinute = alarmMinute;
+        this.alarmHour2 = alarmHour2;
+        this.alarmMinute2 = alarmMinute2;
         this.notes = notes;
     }
 
@@ -34,5 +39,7 @@ public class MedicationCreateRequest {
     public Boolean getAlarmEnabled() { return alarmEnabled; }
     public Integer getAlarmHour() { return alarmHour; }
     public Integer getAlarmMinute() { return alarmMinute; }
+    public Integer getAlarmHour2() { return alarmHour2; }
+    public Integer getAlarmMinute2() { return alarmMinute2; }
     public String getNotes() { return notes; }
 }

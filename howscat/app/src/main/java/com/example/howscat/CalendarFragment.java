@@ -15,7 +15,6 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ImageView;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -89,11 +88,13 @@ public class CalendarFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_calendar, container, false);
 
         listCalendarEventsContainer = view.findViewById(R.id.listCalendarEventsContainer);
-        TextView textCalendarEmpty = view.findViewById(R.id.textCalendarEmpty);
+        textCalendarEmpty = view.findViewById(R.id.textCalendarEmpty);
         View layoutNextCheckup = view.findViewById(R.id.layoutNextCheckup);
         View layoutNextVaccine = view.findViewById(R.id.layoutNextVaccine);
         TextView textNextCheckup = view.findViewById(R.id.textNextCheckup);
         TextView textNextVaccine = view.findViewById(R.id.textNextVaccine);
+        MaterialButton btnCheckupAction = view.findViewById(R.id.btnCheckupAction);
+        MaterialButton btnVaccineAction = view.findViewById(R.id.btnVaccineAction);
         Button btnAddCalendarMemo = view.findViewById(R.id.btnAddCalendarMemo);
         Chip btnFilterWeight = view.findViewById(R.id.btnFilterWeight);
         Chip btnFilterVomit = view.findViewById(R.id.btnFilterVomit);
@@ -108,7 +109,6 @@ public class CalendarFragment extends Fragment {
 
         this.api = RetrofitClient.getApiService(requireContext());
         this.catId = getCurrentCatId();
-        this.textCalendarEmpty = textCalendarEmpty;
         this.displayMonth = Calendar.getInstance();
 
         if (this.catId <= 0) {
@@ -133,7 +133,8 @@ public class CalendarFragment extends Fragment {
 
         HealthScheduleAlarmScheduler.syncAlarms(requireContext(), catId);
 
-        loadNextHealthSchedules(api, catId, layoutNextCheckup, textNextCheckup, layoutNextVaccine, textNextVaccine);
+        loadNextHealthSchedules(api, catId, layoutNextCheckup, textNextCheckup, btnCheckupAction,
+                layoutNextVaccine, textNextVaccine, btnVaccineAction);
 
         String todayStr = dateFmt.format(new Date());
         currentDateStr = todayStr;
@@ -391,109 +392,35 @@ public class CalendarFragment extends Fragment {
         String memoDate = currentDateStr != null ? currentDateStr : new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_calendar_add_memo, null, false);
         TextView tvDate = dialogView.findViewById(R.id.textMemoDate);
-        MaterialButtonToggleGroup groupType = dialogView.findViewById(R.id.groupMemoType);
-        MaterialButton rbNormal = dialogView.findViewById(R.id.rbMemoTypeNormal);
-        MaterialButton rbCheckup = dialogView.findViewById(R.id.rbMemoTypeCheckup);
-        MaterialButton rbVaccine = dialogView.findViewById(R.id.rbMemoTypeVaccine);
         EditText editMemo = dialogView.findViewById(R.id.editMemoContent);
-        View layoutScheduleAlarm = dialogView.findViewById(R.id.layoutScheduleAlarm);
-        com.google.android.material.materialswitch.MaterialSwitch switchScheduleAlarm =
-                dialogView.findViewById(R.id.switchScheduleAlarm);
         tvDate.setText("날짜: " + memoDate);
-        groupType.check(rbNormal.getId());
-
-        // 건강검진/예방접종 선택 시 알림 설정 영역 표시
-        groupType.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-            if (!isChecked) return;
-            boolean isScheduleType = checkedId == rbCheckup.getId() || checkedId == rbVaccine.getId();
-            if (layoutScheduleAlarm != null) {
-                layoutScheduleAlarm.setVisibility(isScheduleType ? View.VISIBLE : View.GONE);
-            }
-        });
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(dialogView)
                 .setNegativeButton("취소", (d, which) -> d.dismiss())
                 .setPositiveButton("저장", (d, which) -> {
                     String content = editMemo.getText() != null ? editMemo.getText().toString().trim() : "";
-
-                    int checked = groupType.getCheckedButtonId();
-                    boolean isCheckup = checked == rbCheckup.getId();
-                    boolean isVaccine = checked == rbVaccine.getId();
-                    boolean isScheduleType = isCheckup || isVaccine;
-
-                    // 건강검진/예방접종은 메모 없어도 저장 가능 (일반 메모는 내용 필수)
-                    if (!isScheduleType && content.isEmpty()) {
+                    if (content.isEmpty()) {
                         Toast.makeText(requireContext(), "메모 내용을 입력해 주세요.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-
-                    // healthTypeId: 1=건강검진, 2=예방접종 (서버 seed 기준)
-                    Long healthTypeId = null;
-                    if (isCheckup) healthTypeId = 1L;
-                    else if (isVaccine) healthTypeId = 2L;
-
-                    boolean alarmEnabled = switchScheduleAlarm != null && switchScheduleAlarm.isChecked();
-
-                    // 건강검진/예방접종이면 health_schedule 등록 (다음 일정 자동 계산)
-                    if (isScheduleType) {
-                        final Long finalHealthTypeId = healthTypeId;
-                        com.example.howscat.dto.HealthScheduleCreateRequest scheduleReq =
-                                new com.example.howscat.dto.HealthScheduleCreateRequest(
-                                        finalHealthTypeId, memoDate, alarmEnabled, null);
-                        api.createHealthSchedule(catId, scheduleReq).enqueue(new Callback<com.example.howscat.dto.HealthScheduleItem>() {
-                            @Override
-                            public void onResponse(Call<com.example.howscat.dto.HealthScheduleItem> call,
-                                                   Response<com.example.howscat.dto.HealthScheduleItem> response) {
-                                if (response.isSuccessful() && response.body() != null) {
-                                    String nextDate = response.body().getNextDate();
-                                    String typeName = isCheckup ? "건강검진" : "예방접종";
-                                    Toast.makeText(requireContext(),
-                                            typeName + " 등록 완료. 다음 일정: " + nextDate,
-                                            Toast.LENGTH_SHORT).show();
-                                    HealthScheduleAlarmScheduler.syncAlarms(requireContext(), catId);
-                                    // 캘린더에 완료 이벤트 표시 (last_date 기준으로 갱신)
-                                    loadMonthMemoMarkers();
-                                    loadEventsForDate(api, catId, memoDate, textCalendarEmpty, false);
-                                    View root = getView();
-                                    if (root != null) {
-                                        loadNextHealthSchedules(api, catId,
-                                                root.findViewById(R.id.layoutNextCheckup),
-                                                root.findViewById(R.id.textNextCheckup),
-                                                root.findViewById(R.id.layoutNextVaccine),
-                                                root.findViewById(R.id.textNextVaccine));
-                                    }
-                                }
+                    CalendarMemoCreateRequest req = new CalendarMemoCreateRequest(content, memoDate, null);
+                    api.addCalendarMemo(catId, req).enqueue(new Callback<Void>() {
+                        @Override
+                        public void onResponse(Call<Void> call, Response<Void> response) {
+                            if (response.isSuccessful()) {
+                                Toast.makeText(requireContext(), "메모 저장 완료", Toast.LENGTH_SHORT).show();
+                                loadMonthMemoMarkers();
+                                loadEventsForDate(api, catId, memoDate, textCalendarEmpty, false);
+                            } else {
+                                Toast.makeText(requireContext(), "메모 저장 실패 (HTTP " + response.code() + ")", Toast.LENGTH_SHORT).show();
                             }
-                            @Override
-                            public void onFailure(Call<com.example.howscat.dto.HealthScheduleItem> call, Throwable t) {
-                                Toast.makeText(requireContext(), "일정 등록 실패: " + (t.getMessage() != null ? t.getMessage() : "네트워크 오류"), Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    }
-
-                    // 건강검진/예방접종은 health_schedule로만 저장 (calendar_memo 중복 생성 방지)
-                    // 일반 메모만 calendar_memo에 저장
-                    if (!isScheduleType) {
-                        String memoContent = content.isEmpty() ? "" : content;
-                        CalendarMemoCreateRequest req = new CalendarMemoCreateRequest(memoContent, memoDate, null);
-                        api.addCalendarMemo(catId, req).enqueue(new Callback<Void>() {
-                            @Override
-                            public void onResponse(Call<Void> call, Response<Void> response) {
-                                if (response.isSuccessful()) {
-                                    Toast.makeText(requireContext(), "메모 저장 완료", Toast.LENGTH_SHORT).show();
-                                    loadMonthMemoMarkers();
-                                    loadEventsForDate(api, catId, memoDate, textCalendarEmpty, false);
-                                } else {
-                                    Toast.makeText(requireContext(), "메모 저장 실패 (HTTP " + response.code() + ")", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                            @Override
-                            public void onFailure(Call<Void> call, Throwable t) {
-                                Toast.makeText(requireContext(), "메모 저장 실패: " + (t.getMessage() != null ? t.getMessage() : t.getClass().getSimpleName()), Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    }
+                        }
+                        @Override
+                        public void onFailure(Call<Void> call, Throwable t) {
+                            Toast.makeText(requireContext(), "메모 저장 실패: " + (t.getMessage() != null ? t.getMessage() : t.getClass().getSimpleName()), Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 })
                 .create();
         dialog.show();
@@ -520,8 +447,10 @@ public class CalendarFragment extends Fragment {
             long catId,
             View layoutNextCheckup,
             TextView textNextCheckup,
+            MaterialButton btnCheckupAction,
             View layoutNextVaccine,
-            TextView textNextVaccine
+            TextView textNextVaccine,
+            MaterialButton btnVaccineAction
     ) {
         if (api == null) return;
 
@@ -603,19 +532,31 @@ public class CalendarFragment extends Fragment {
                 HealthScheduleItem vaccineToShow = nextVaccineFuture != null ? nextVaccineFuture : nextVaccineAny;
 
                 if (checkToShow != null) {
-                    textNextCheckup.setText("건강검진: " + checkToShow.getNextDate());
-                    layoutNextCheckup.setOnClickListener(v -> showHealthScheduleEditDialog(api, catId, checkToShow));
+                    textNextCheckup.setText("건강검진: " + fmtDateShort(checkToShow.getNextDate()));
+                    if (btnCheckupAction != null) {
+                        btnCheckupAction.setText("수정");
+                        btnCheckupAction.setOnClickListener(v -> showHealthScheduleEditDialog(api, catId, checkToShow));
+                    }
                 } else {
-                    textNextCheckup.setText("건강검진: 일정 없음");
-                    layoutNextCheckup.setOnClickListener(null);
+                    textNextCheckup.setText("건강검진: 등록 없음");
+                    if (btnCheckupAction != null) {
+                        btnCheckupAction.setText("등록");
+                        btnCheckupAction.setOnClickListener(v -> showHealthScheduleCreateDialog("건강검진", 1L));
+                    }
                 }
 
                 if (vaccineToShow != null) {
-                    textNextVaccine.setText("예방접종: " + vaccineToShow.getNextDate());
-                    layoutNextVaccine.setOnClickListener(v -> showHealthScheduleEditDialog(api, catId, vaccineToShow));
+                    textNextVaccine.setText("예방접종: " + fmtDateShort(vaccineToShow.getNextDate()));
+                    if (btnVaccineAction != null) {
+                        btnVaccineAction.setText("수정");
+                        btnVaccineAction.setOnClickListener(v -> showHealthScheduleEditDialog(api, catId, vaccineToShow));
+                    }
                 } else {
-                    textNextVaccine.setText("예방접종: 일정 없음");
-                    layoutNextVaccine.setOnClickListener(null);
+                    textNextVaccine.setText("예방접종: 등록 없음");
+                    if (btnVaccineAction != null) {
+                        btnVaccineAction.setText("등록");
+                        btnVaccineAction.setOnClickListener(v -> showHealthScheduleCreateDialog("예방접종", 2L));
+                    }
                 }
             }
 
@@ -634,165 +575,361 @@ public class CalendarFragment extends Fragment {
     ) {
         if (api == null || item == null || item.getHealthScheduleId() == null) return;
 
+        BottomSheetDialog sheet = new BottomSheetDialog(requireContext());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         sdf.setLenient(false);
 
         Calendar picked = Calendar.getInstance();
         try {
-            if (item.getNextDate() != null) {
-                Date d = sdf.parse(item.getNextDate());
-                picked.setTime(d);
-            } else {
-                picked.setTime(new Date());
-            }
-        } catch (Exception e) {
-            picked.setTime(new Date());
-        }
+            if (item.getNextDate() != null) picked.setTime(sdf.parse(item.getNextDate()));
+            else picked.setTime(new Date());
+        } catch (Exception e) { picked.setTime(new Date()); }
 
-        Switch switchAlarm = new Switch(requireContext());
-        switchAlarm.setText("알림 사용");
-        switchAlarm.setChecked(item.getAlarmEnabled() != null && item.getAlarmEnabled());
+        float density = requireContext().getResources().getDisplayMetrics().density;
+        int p8  = (int)(8  * density);
+        int p16 = (int)(16 * density);
+        int p24 = (int)(24 * density);
+        int p48 = (int)(48 * density);
 
+        LinearLayout root = new LinearLayout(requireContext());
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackground(ContextCompat.getDrawable(requireContext(), R.drawable.bg_bottom_sheet));
+        root.setPadding(p24, p24, p24, p48);
+
+        // 제목
+        TextView tvTitle = new TextView(requireContext());
+        tvTitle.setText((item.getHealthTypeName() != null ? item.getHealthTypeName() : "건강 일정") + " 수정");
+        tvTitle.setTextSize(18f);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvTitle.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface));
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        titleLp.bottomMargin = p24;
+        tvTitle.setLayoutParams(titleLp);
+        root.addView(tvTitle);
+
+        // 다음 예정일 레이블
+        TextView labelNext = new TextView(requireContext());
+        labelNext.setText("다음 예정일");
+        labelNext.setTextSize(12.5f);
+        labelNext.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface_variant));
+        LinearLayout.LayoutParams lbLp1 = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lbLp1.bottomMargin = p8;
+        labelNext.setLayoutParams(lbLp1);
+        root.addView(labelNext);
+
+        // 날짜 선택 행
+        LinearLayout dateRow = new LinearLayout(requireContext());
+        dateRow.setOrientation(LinearLayout.HORIZONTAL);
+        dateRow.setGravity(Gravity.CENTER_VERTICAL);
+        dateRow.setBackground(ContextCompat.getDrawable(requireContext(), R.drawable.bg_chip_soft));
+        dateRow.setPadding(p16, p8, p16, p8);
+        dateRow.setClickable(true);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowLp.bottomMargin = p24;
+        dateRow.setLayoutParams(rowLp);
+
+        TextView tvDate = new TextView(requireContext());
+        tvDate.setText(sdf.format(picked.getTime()));
+        tvDate.setTextSize(15f);
+        tvDate.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface));
+        tvDate.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        dateRow.addView(tvDate);
+
+        TextView tvCalIcon = new TextView(requireContext());
+        tvCalIcon.setText("수정");
+        tvCalIcon.setTextSize(13f);
+        tvCalIcon.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_primary));
+        dateRow.addView(tvCalIcon);
+
+        dateRow.setOnClickListener(v -> new DatePickerDialog(requireContext(),
+                (dp2, y, m, day) -> { picked.set(y, m, day); tvDate.setText(sdf.format(picked.getTime())); },
+                picked.get(Calendar.YEAR), picked.get(Calendar.MONTH), picked.get(Calendar.DAY_OF_MONTH)).show());
+        root.addView(dateRow);
+
+        // 주기 레이블
         TextView labelCycle = new TextView(requireContext());
-        labelCycle.setText("커스텀 주기(개월, 비우면 유지)");
-        labelCycle.setTextColor(getResources().getColor(R.color.cat_text_secondary));
+        labelCycle.setText("검진 주기 (개월, 비우면 유지)");
         labelCycle.setTextSize(12.5f);
+        labelCycle.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface_variant));
+        LinearLayout.LayoutParams lbLp2 = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lbLp2.bottomMargin = p8;
+        labelCycle.setLayoutParams(lbLp2);
+        root.addView(labelCycle);
 
-        EditText editCycleMonth = new EditText(requireContext());
-        editCycleMonth.setHint("예: 6");
-        editCycleMonth.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        if (item.getCustomCycleMonth() != null) {
-            editCycleMonth.setText(String.valueOf(item.getCustomCycleMonth()));
-        }
+        EditText editCycle = new EditText(requireContext());
+        editCycle.setHint("예: 6");
+        editCycle.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        editCycle.setTextSize(15f);
+        if (item.getCustomCycleMonth() != null) editCycle.setText(String.valueOf(item.getCustomCycleMonth()));
+        LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        editLp.bottomMargin = p24;
+        editCycle.setLayoutParams(editLp);
+        root.addView(editCycle);
 
-        TextView labelNextDate = new TextView(requireContext());
-        labelNextDate.setText("다음 날짜(yyyy-MM-dd)");
-        labelNextDate.setTextColor(getResources().getColor(R.color.cat_text_secondary));
-        labelNextDate.setTextSize(12.5f);
+        // 알림 스위치
+        com.google.android.material.materialswitch.MaterialSwitch switchAlarm =
+                new com.google.android.material.materialswitch.MaterialSwitch(requireContext());
+        switchAlarm.setText("알림 설정");
+        switchAlarm.setChecked(item.getAlarmEnabled() != null && item.getAlarmEnabled());
+        switchAlarm.setTextSize(14.5f);
+        LinearLayout.LayoutParams swLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        swLp.bottomMargin = p24;
+        switchAlarm.setLayoutParams(swLp);
+        root.addView(switchAlarm);
 
-        EditText editNextDate = new EditText(requireContext());
-        editNextDate.setHint("날짜 선택");
-        editNextDate.setFocusable(false);
-        editNextDate.setText(sdf.format(picked.getTime()));
-        editNextDate.setOnClickListener(v -> {
-            DatePickerDialog dlg = new DatePickerDialog(
-                    requireContext(),
-                    (view, year, month, dayOfMonth) -> {
-                        picked.set(Calendar.YEAR, year);
-                        picked.set(Calendar.MONTH, month);
-                        picked.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                        editNextDate.setText(sdf.format(picked.getTime()));
-                    },
-                    picked.get(Calendar.YEAR),
-                    picked.get(Calendar.MONTH),
-                    picked.get(Calendar.DAY_OF_MONTH)
-            );
-            dlg.show();
-        });
+        // 버튼 행 (삭제 / 취소 / 저장)
+        LinearLayout btnRow = new LinearLayout(requireContext());
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        btnRow.setGravity(Gravity.END);
 
-        LinearLayout container = new LinearLayout(requireContext());
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(24, 20, 24, 10);
-        container.addView(labelCycle);
-        container.addView(editCycleMonth);
-        container.addView(labelNextDate);
-        container.addView(editNextDate);
-        container.addView(switchAlarm);
-
-        AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle(item.getHealthTypeName() != null ? item.getHealthTypeName() + " 일정 수정" : "일정 수정")
-                .setView(container)
-                .setNeutralButton("삭제", null)  // null → onShow 에서 override
-                .setNegativeButton("취소", (d, which) -> d.dismiss())
-                .setPositiveButton("저장", (d, which) -> {
-                    String cycleStr = editCycleMonth.getText() != null ? editCycleMonth.getText().toString().trim() : "";
-                    Integer cycle = null;
-                    if (!cycleStr.isEmpty()) {
-                        try {
-                            cycle = Integer.parseInt(cycleStr);
-                        } catch (Exception ignored) {
-                        }
-                    }
-
-                    String nextDateStr = editNextDate.getText() != null ? editNextDate.getText().toString().trim() : null;
-                    HealthScheduleUpdateRequest req = new HealthScheduleUpdateRequest(
-                            nextDateStr,
-                            cycle,
-                            switchAlarm.isChecked()
-                    );
-
-                    api.updateHealthSchedule(catId, item.getHealthScheduleId(), req).enqueue(new Callback<Void>() {
+        MaterialButton btnDel = new MaterialButton(requireContext());
+        btnDel.setText("삭제");
+        btnDel.setAllCaps(false);
+        btnDel.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnDel.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark));
+        btnDel.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        btnDel.setOnClickListener(v -> new AlertDialog.Builder(requireContext())
+                .setTitle("일정 삭제")
+                .setMessage((item.getHealthTypeName() != null ? item.getHealthTypeName() : "이 일정") + "을 삭제할까요?")
+                .setNegativeButton("취소", null)
+                .setPositiveButton("삭제", (confirm, w) -> {
+                    sheet.dismiss();
+                    api.deleteHealthSchedule(catId, item.getHealthScheduleId()).enqueue(new Callback<Void>() {
                         @Override
                         public void onResponse(Call<Void> call, Response<Void> response) {
+                            if (!isAdded() || getContext() == null) return;
                             if (response.isSuccessful()) {
-                                Toast.makeText(requireContext(), "저장 완료", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(requireContext(), "일정 삭제 완료", Toast.LENGTH_SHORT).show();
                                 HealthScheduleAlarmScheduler.syncAlarms(requireContext(), catId);
-                                View root = requireView();
-                                View layoutCheck = root.findViewById(R.id.layoutNextCheckup);
-                                View layoutVaccine = root.findViewById(R.id.layoutNextVaccine);
-                                TextView textCheck = root.findViewById(R.id.textNextCheckup);
-                                TextView textVaccine = root.findViewById(R.id.textNextVaccine);
-                                loadNextHealthSchedules(api, catId, layoutCheck, textCheck, layoutVaccine, textVaccine);
+                                View rv = getView();
+                                if (rv != null) loadNextHealthSchedules(api, catId,
+                                        rv.findViewById(R.id.layoutNextCheckup), rv.findViewById(R.id.textNextCheckup),
+                                        rv.findViewById(R.id.btnCheckupAction),
+                                        rv.findViewById(R.id.layoutNextVaccine), rv.findViewById(R.id.textNextVaccine),
+                                        rv.findViewById(R.id.btnVaccineAction));
                                 loadMonthMemoMarkers();
                                 loadEventsForDate(api, catId, currentDateStr, textCalendarEmpty, false);
                             } else {
-                                Toast.makeText(requireContext(), "저장 실패 (HTTP " + response.code() + ")", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(requireContext(), "삭제 실패 (HTTP " + response.code() + ")", Toast.LENGTH_SHORT).show();
                             }
                         }
-
                         @Override
                         public void onFailure(Call<Void> call, Throwable t) {
-                            Toast.makeText(requireContext(), "저장 실패: 네트워크 오류", Toast.LENGTH_SHORT).show();
+                            if (!isAdded() || getContext() == null) return;
+                            Toast.makeText(requireContext(), "삭제 실패: 네트워크 오류", Toast.LENGTH_SHORT).show();
                         }
                     });
-                })
-                .create();
+                }).show());
+        btnRow.addView(btnDel);
 
-        // 삭제 버튼: dialog 닫히지 않게 override → 확인 후 삭제
-        dialog.setOnShowListener(d -> {
-            android.widget.Button btnDelete = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
-            if (btnDelete != null) {
-                btnDelete.setTextColor(
-                        androidx.core.content.ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark));
-                btnDelete.setOnClickListener(v -> {
-                    new AlertDialog.Builder(requireContext())
-                            .setTitle("일정 삭제")
-                            .setMessage((item.getHealthTypeName() != null ? item.getHealthTypeName() : "이 일정") + "을 삭제할까요?")
-                            .setNegativeButton("취소", null)
-                            .setPositiveButton("삭제", (confirm, w) -> {
-                                dialog.dismiss();
-                                api.deleteHealthSchedule(catId, item.getHealthScheduleId())
-                                        .enqueue(new Callback<Void>() {
-                                    @Override
-                                    public void onResponse(Call<Void> call, Response<Void> response) {
-                                        if (response.isSuccessful()) {
-                                            Toast.makeText(requireContext(), "일정 삭제 완료", Toast.LENGTH_SHORT).show();
-                                            HealthScheduleAlarmScheduler.syncAlarms(requireContext(), catId);
-                                            View root = requireView();
-                                            loadNextHealthSchedules(api, catId,
-                                                    root.findViewById(R.id.layoutNextCheckup),
-                                                    root.findViewById(R.id.textNextCheckup),
-                                                    root.findViewById(R.id.layoutNextVaccine),
-                                                    root.findViewById(R.id.textNextVaccine));
-                                            loadMonthMemoMarkers();
-                                            loadEventsForDate(api, catId, currentDateStr, textCalendarEmpty, false);
-                                        } else {
-                                            Toast.makeText(requireContext(), "삭제 실패 (HTTP " + response.code() + ")", Toast.LENGTH_SHORT).show();
-                                        }
-                                    }
-                                    @Override
-                                    public void onFailure(Call<Void> call, Throwable t) {
-                                        Toast.makeText(requireContext(), "삭제 실패: 네트워크 오류", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            })
-                            .show();
-                });
-            }
+        MaterialButton btnCancel = new MaterialButton(requireContext());
+        btnCancel.setText("취소");
+        btnCancel.setAllCaps(false);
+        btnCancel.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnCancel.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface_variant));
+        btnCancel.setOnClickListener(v -> sheet.dismiss());
+        btnRow.addView(btnCancel);
+
+        MaterialButton btnSave = new MaterialButton(requireContext());
+        btnSave.setText("저장");
+        btnSave.setAllCaps(false);
+        LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        saveLp.leftMargin = p8;
+        btnSave.setLayoutParams(saveLp);
+        btnSave.setOnClickListener(v -> {
+            sheet.dismiss();
+            String cycleStr = editCycle.getText() != null ? editCycle.getText().toString().trim() : "";
+            Integer cycle = null;
+            if (!cycleStr.isEmpty()) { try { cycle = Integer.parseInt(cycleStr); } catch (Exception ignored) {} }
+            String nextDateStr = tvDate.getText() != null ? tvDate.getText().toString().trim() : null;
+            HealthScheduleUpdateRequest req = new HealthScheduleUpdateRequest(nextDateStr, cycle, switchAlarm.isChecked());
+            api.updateHealthSchedule(catId, item.getHealthScheduleId(), req).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (!isAdded() || getContext() == null) return;
+                    if (response.isSuccessful()) {
+                        Toast.makeText(requireContext(), "저장 완료", Toast.LENGTH_SHORT).show();
+                        HealthScheduleAlarmScheduler.syncAlarms(requireContext(), catId);
+                        View rv = getView();
+                        if (rv != null) loadNextHealthSchedules(api, catId,
+                                rv.findViewById(R.id.layoutNextCheckup), rv.findViewById(R.id.textNextCheckup),
+                                rv.findViewById(R.id.btnCheckupAction),
+                                rv.findViewById(R.id.layoutNextVaccine), rv.findViewById(R.id.textNextVaccine),
+                                rv.findViewById(R.id.btnVaccineAction));
+                        loadMonthMemoMarkers();
+                        loadEventsForDate(api, catId, currentDateStr, textCalendarEmpty, false);
+                    } else {
+                        Toast.makeText(requireContext(), "저장 실패 (HTTP " + response.code() + ")", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    if (!isAdded() || getContext() == null) return;
+                    Toast.makeText(requireContext(), "저장 실패: 네트워크 오류", Toast.LENGTH_SHORT).show();
+                }
+            });
         });
+        btnRow.addView(btnSave);
+        root.addView(btnRow);
 
-        dialog.show();
-        styleDialogWindow(dialog);
+        sheet.setContentView(root);
+        sheet.show();
+    }
+
+    private void showHealthScheduleCreateDialog(String typeName, long healthTypeId) {
+        if (api == null || catId <= 0) return;
+
+        BottomSheetDialog sheet = new BottomSheetDialog(requireContext());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        Calendar picked = Calendar.getInstance();
+        float density = requireContext().getResources().getDisplayMetrics().density;
+        int p8  = (int)(8  * density);
+        int p16 = (int)(16 * density);
+        int p24 = (int)(24 * density);
+        int p48 = (int)(48 * density);
+
+        LinearLayout root = new LinearLayout(requireContext());
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackground(ContextCompat.getDrawable(requireContext(), R.drawable.bg_bottom_sheet));
+        root.setPadding(p24, p24, p24, p48);
+
+        // 제목
+        TextView tvTitle = new TextView(requireContext());
+        tvTitle.setText(typeName + " 일정 등록");
+        tvTitle.setTextSize(18f);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvTitle.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface));
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        titleLp.bottomMargin = p24;
+        tvTitle.setLayoutParams(titleLp);
+        root.addView(tvTitle);
+
+        // 완료 날짜 레이블
+        TextView labelDate = new TextView(requireContext());
+        labelDate.setText("완료 날짜");
+        labelDate.setTextSize(12.5f);
+        labelDate.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface_variant));
+        LinearLayout.LayoutParams lbLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lbLp.bottomMargin = p8;
+        labelDate.setLayoutParams(lbLp);
+        root.addView(labelDate);
+
+        // 날짜 선택 행
+        LinearLayout dateRow = new LinearLayout(requireContext());
+        dateRow.setOrientation(LinearLayout.HORIZONTAL);
+        dateRow.setGravity(Gravity.CENTER_VERTICAL);
+        dateRow.setBackground(ContextCompat.getDrawable(requireContext(), R.drawable.bg_chip_soft));
+        dateRow.setPadding(p16, p8, p16, p8);
+        dateRow.setClickable(true);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowLp.bottomMargin = p24;
+        dateRow.setLayoutParams(rowLp);
+
+        TextView tvDate = new TextView(requireContext());
+        tvDate.setText(sdf.format(picked.getTime()));
+        tvDate.setTextSize(15f);
+        tvDate.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface));
+        tvDate.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        dateRow.addView(tvDate);
+
+        TextView tvCalIcon = new TextView(requireContext());
+        tvCalIcon.setText("수정");
+        tvCalIcon.setTextSize(13f);
+        tvCalIcon.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_primary));
+        dateRow.addView(tvCalIcon);
+
+        dateRow.setOnClickListener(v -> new DatePickerDialog(requireContext(),
+                (dp2, y, m, day) -> { picked.set(y, m, day); tvDate.setText(sdf.format(picked.getTime())); },
+                picked.get(Calendar.YEAR), picked.get(Calendar.MONTH), picked.get(Calendar.DAY_OF_MONTH)).show());
+        root.addView(dateRow);
+
+        // 알림 스위치
+        com.google.android.material.materialswitch.MaterialSwitch switchAlarm =
+                new com.google.android.material.materialswitch.MaterialSwitch(requireContext());
+        switchAlarm.setText("알림 설정");
+        switchAlarm.setChecked(true);
+        switchAlarm.setTextSize(14.5f);
+        LinearLayout.LayoutParams swLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        swLp.bottomMargin = p24;
+        switchAlarm.setLayoutParams(swLp);
+        root.addView(switchAlarm);
+
+        // 버튼 행
+        LinearLayout btnRow = new LinearLayout(requireContext());
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        btnRow.setGravity(Gravity.END);
+
+        MaterialButton btnCancel = new MaterialButton(requireContext());
+        btnCancel.setText("취소");
+        btnCancel.setAllCaps(false);
+        btnCancel.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnCancel.setTextColor(ContextCompat.getColor(requireContext(), R.color.app_on_surface_variant));
+        btnCancel.setOnClickListener(v -> sheet.dismiss());
+        btnRow.addView(btnCancel);
+
+        MaterialButton btnOk = new MaterialButton(requireContext());
+        btnOk.setText("등록");
+        btnOk.setAllCaps(false);
+        LinearLayout.LayoutParams okLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        okLp.leftMargin = p8;
+        btnOk.setLayoutParams(okLp);
+        btnOk.setOnClickListener(v -> {
+            sheet.dismiss();
+            String dateStr = tvDate.getText() != null ? tvDate.getText().toString().trim()
+                    : sdf.format(new java.util.Date());
+            com.example.howscat.dto.HealthScheduleCreateRequest req =
+                    new com.example.howscat.dto.HealthScheduleCreateRequest(
+                            healthTypeId, dateStr, switchAlarm.isChecked(), null);
+            api.createHealthSchedule(catId, req).enqueue(new Callback<com.example.howscat.dto.HealthScheduleItem>() {
+                @Override
+                public void onResponse(@NonNull Call<com.example.howscat.dto.HealthScheduleItem> call,
+                                       @NonNull Response<com.example.howscat.dto.HealthScheduleItem> response) {
+                    if (!isAdded() || getContext() == null) return;
+                    if (response.isSuccessful() && response.body() != null) {
+                        String nextDate = response.body().getNextDate();
+                        Toast.makeText(requireContext(),
+                                typeName + " 등록 완료. 다음 일정: " + nextDate, Toast.LENGTH_SHORT).show();
+                        HealthScheduleAlarmScheduler.syncAlarms(requireContext(), catId);
+                        View rv = getView();
+                        if (rv != null) {
+                            loadNextHealthSchedules(api, catId,
+                                    rv.findViewById(R.id.layoutNextCheckup),
+                                    rv.findViewById(R.id.textNextCheckup),
+                                    rv.findViewById(R.id.btnCheckupAction),
+                                    rv.findViewById(R.id.layoutNextVaccine),
+                                    rv.findViewById(R.id.textNextVaccine),
+                                    rv.findViewById(R.id.btnVaccineAction));
+                        }
+                        loadMonthMemoMarkers();
+                        loadEventsForDate(api, catId, currentDateStr, textCalendarEmpty, false);
+                    } else {
+                        Toast.makeText(requireContext(), "등록 실패 (HTTP " + response.code() + ")", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                @Override
+                public void onFailure(@NonNull Call<com.example.howscat.dto.HealthScheduleItem> call, @NonNull Throwable t) {
+                    if (!isAdded() || getContext() == null) return;
+                    Toast.makeText(requireContext(), "등록 실패: 네트워크 오류", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+        btnRow.addView(btnOk);
+        root.addView(btnRow);
+
+        sheet.setContentView(root);
+        sheet.show();
     }
 
     private void loadEventsForDate(
@@ -819,7 +956,7 @@ public class CalendarFragment extends Fragment {
                     currentItems.clear();
                     currentItems.addAll(items);
                     rebuildCalendarEventRows();
-                    textCalendarEmpty.setText(filteredItems.isEmpty() ? "필터 조건의 기록이 없습니다" : "");
+                    textCalendarEmpty.setText("");
                 } else {
                     textCalendarEmpty.setText("기록을 불러오지 못했습니다 (HTTP " + response.code() + ")");
                 }
@@ -878,7 +1015,7 @@ public class CalendarFragment extends Fragment {
             listCalendarEventsContainer.addView(row);
         }
         if (textCalendarEmpty != null) {
-            textCalendarEmpty.setText(filteredItems.isEmpty() ? "필터 조건의 기록이 없습니다" : "");
+            textCalendarEmpty.setText("");
         }
     }
 
@@ -1131,6 +1268,33 @@ public class CalendarFragment extends Fragment {
         final int[] alarmM = {item.getAlarmMinute() != null ? item.getAlarmMinute() : 0};
         final boolean[] isAmEdit = {alarmH[0] < 12};
 
+        // 2회차 알람 시간 (기본값: 1회차 + 12시간)
+        int defH2 = item.getAlarmHour2() != null ? item.getAlarmHour2() : (alarmH[0] + 12) % 24;
+        int defM2 = item.getAlarmMinute2() != null ? item.getAlarmMinute2() : alarmM[0];
+        final int[] alarmH2 = {defH2};
+        final int[] alarmM2 = {defM2};
+        final boolean[] isAmEdit2 = {alarmH2[0] < 12};
+
+        View labelTime1 = dialogView.findViewById(R.id.labelMedAlarmTime1);
+        View labelTime2 = dialogView.findViewById(R.id.labelMedAlarmTime2);
+        View layoutTime2 = dialogView.findViewById(R.id.layoutMedAlarmTime2);
+        com.google.android.material.button.MaterialButtonToggleGroup toggleMeridiem2 =
+                dialogView.findViewById(R.id.toggleMedMeridiem2);
+        TextView textAlarmTime2 = dialogView.findViewById(R.id.textMedAlarmTime2);
+
+        Runnable updateTwiceVisibility = () -> {
+            boolean isTwice = toggleFreq != null
+                    && toggleFreq.getCheckedButtonId() == R.id.btnFreqTwice;
+            int vis = isTwice ? View.VISIBLE : View.GONE;
+            if (labelTime1 != null) labelTime1.setVisibility(vis);
+            if (labelTime2 != null) labelTime2.setVisibility(vis);
+            if (layoutTime2 != null) layoutTime2.setVisibility(vis);
+        };
+        updateTwiceVisibility.run();
+        if (toggleFreq != null) {
+            toggleFreq.addOnButtonCheckedListener((g, id, chk) -> { if (chk) updateTwiceVisibility.run(); });
+        }
+
         if (toggleMeridiem != null) {
             toggleMeridiem.check(isAmEdit[0] ? R.id.btnMeridiemAm : R.id.btnMeridiemPm);
             toggleMeridiem.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
@@ -1155,6 +1319,30 @@ public class CalendarFragment extends Fragment {
                 }, h12init == 12 ? 0 : h12init, alarmM[0], false).show();
             });
         }
+        if (toggleMeridiem2 != null) {
+            toggleMeridiem2.check(isAmEdit2[0] ? R.id.btnMeridiemAm2 : R.id.btnMeridiemPm2);
+            toggleMeridiem2.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                isAmEdit2[0] = (checkedId == R.id.btnMeridiemAm2);
+                int h12 = alarmH2[0] % 12 == 0 ? 12 : alarmH2[0] % 12;
+                alarmH2[0] = isAmEdit2[0] ? (h12 % 12) : (h12 % 12 + 12);
+                if (textAlarmTime2 != null)
+                    textAlarmTime2.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", h12, alarmM2[0]));
+            });
+        }
+        if (textAlarmTime2 != null) {
+            int initH12b = alarmH2[0] % 12 == 0 ? 12 : alarmH2[0] % 12;
+            textAlarmTime2.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", initH12b, alarmM2[0]));
+            textAlarmTime2.setOnClickListener(v -> {
+                int h12init = alarmH2[0] % 12 == 0 ? 12 : alarmH2[0] % 12;
+                new TimePickerDialog(requireContext(), (tp, h, m) -> {
+                    alarmM2[0] = m;
+                    int h12 = h == 0 ? 12 : h;
+                    alarmH2[0] = isAmEdit2[0] ? (h % 12) : (h % 12 + 12);
+                    textAlarmTime2.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", h12, m));
+                }, h12init == 12 ? 0 : h12init, alarmM2[0], false).show();
+            });
+        }
         if (editStartDate != null) editStartDate.setOnClickListener(v -> showEditDatePicker(editStartDate));
         if (editEndDate != null) editEndDate.setOnClickListener(v -> showEditDatePicker(editEndDate));
 
@@ -1175,9 +1363,12 @@ public class CalendarFragment extends Fragment {
             }
             boolean alarmEnabled = switchAlarm != null && switchAlarm.isChecked();
             String notes = editNotes != null && editNotes.getText() != null ? editNotes.getText().toString().trim() : "";
+            boolean isTwice = "TWICE_DAILY".equals(freq);
             MedicationCreateRequest req = new MedicationCreateRequest(
                     name, dosage.isEmpty() ? null : dosage, freq, startDate, endDate,
-                    alarmEnabled, alarmH[0], alarmM[0], notes.isEmpty() ? null : notes);
+                    alarmEnabled, alarmH[0], alarmM[0],
+                    isTwice ? alarmH2[0] : null, isTwice ? alarmM2[0] : null,
+                    notes.isEmpty() ? null : notes);
             api.updateMedication(catId, medicationId, req).enqueue(new Callback<Void>() {
                 @Override
                 public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
@@ -1795,6 +1986,18 @@ public class CalendarFragment extends Fragment {
         lp.setMargins(24, primary ? 10 : 8, 24, 0);
         tv.setLayoutParams(lp);
         container.addView(tv);
+    }
+
+    /** "yyyy-MM-dd" → "M/d" 형식으로 변환 (예: "2026-04-29" → "4/29") */
+    private static String fmtDateShort(String dateStr) {
+        if (dateStr == null || dateStr.length() < 10) return dateStr != null ? dateStr : "";
+        try {
+            int month = Integer.parseInt(dateStr.substring(5, 7));
+            int day   = Integer.parseInt(dateStr.substring(8, 10));
+            return month + "/" + day;
+        } catch (Exception e) {
+            return dateStr;
+        }
     }
 
     private void styleDialogWindow(AlertDialog dialog) {

@@ -3,7 +3,6 @@ package com.example.howscat.kakao;
 import android.content.Context;
 
 import com.example.howscat.BuildConfig;
-import com.example.howscat.HospitalFavoritePrefs;
 import com.example.howscat.dto.HospitalNearbyResponse;
 import com.google.gson.Gson;
 
@@ -94,7 +93,7 @@ public final class KakaoHospitalSearch {
             row.setOpen24Hours(null);
             row.setOperating(null);
             row.setId(null);
-            row.setFavorited(HospitalFavoritePrefs.isFavorite(context, doc.getId()));
+            row.setFavorited(false); // 즐겨찾기는 서버에서 관리 (이 클래스는 미사용)
             out.add(row);
         }
         return out;

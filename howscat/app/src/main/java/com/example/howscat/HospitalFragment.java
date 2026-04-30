@@ -22,9 +22,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
 
-import com.example.howscat.BuildConfig;
 import com.example.howscat.dto.HospitalNearbyResponse;
-import com.example.howscat.kakao.KakaoHospitalSearch;
+import com.example.howscat.network.ApiService;
+import com.example.howscat.network.RetrofitClient;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
@@ -34,16 +34,21 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class HospitalFragment extends Fragment {
 
     private static final int REQ_LOC = 7021;
+    private static final double DEFAULT_RADIUS_KM = 2.0;
 
     private RecyclerView recyclerHospitals;
     private ProgressBar progressHospitals;
 
     private final List<HospitalNearbyResponse> hospitals = new ArrayList<>();
     private HospitalAdapter adapter;
-    private final ExecutorService ioPool = Executors.newSingleThreadExecutor();
+    private ExecutorService ioPool;
 
     public HospitalFragment() {
     }
@@ -52,6 +57,8 @@ public class HospitalFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_hospital, container, false);
+
+        ioPool = Executors.newSingleThreadExecutor();
 
         recyclerHospitals = view.findViewById(R.id.recyclerHospitals);
         progressHospitals = view.findViewById(R.id.progressHospitals);
@@ -91,54 +98,66 @@ public class HospitalFragment extends Fragment {
     }
 
     private void loadNearbyHospitals() {
-        if (getContext() == null) return;
-
-        if (BuildConfig.KAKAO_REST_API_KEY == null || BuildConfig.KAKAO_REST_API_KEY.isEmpty()) {
-            Toast.makeText(requireContext(),
-                    "local.properties에 kakao.rest.api.key 를 넣고 Sync 하세요.",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
+        if (!isAdded() || getContext() == null) return;
 
         progressHospitals.setVisibility(View.VISIBLE);
 
+        // 위치 조회는 백그라운드에서, API 호출은 UI 스레드(Retrofit enqueue)
         ioPool.execute(() -> {
-            try {
-                Location current = getBestLastKnownLocation();
-                double lat = 37.5665;
-                double lng = 126.9780;
-                if (current != null) {
-                    lat = current.getLatitude();
-                    lng = current.getLongitude();
-                }
-                final List<HospitalNearbyResponse> list =
-                        KakaoHospitalSearch.search(requireContext(), lat, lng);
-                if (getActivity() == null) return;
-                requireActivity().runOnUiThread(() -> {
-                    progressHospitals.setVisibility(View.GONE);
-                    hospitals.clear();
-                    hospitals.addAll(list);
-                    sortHospitals();
-                    adapter.notifyDataSetChanged();
-                    if (list.isEmpty()) {
-                        Toast.makeText(requireContext(), "주변 동물병원을 찾지 못했습니다.", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            } catch (Exception e) {
-                if (getActivity() == null) return;
-                requireActivity().runOnUiThread(() -> {
-                    progressHospitals.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(),
-                            "병원 검색 실패: " + e.getClass().getSimpleName(),
-                            Toast.LENGTH_SHORT).show();
-                });
-            }
+            Location current = getBestLastKnownLocation();
+            final double lat = current != null ? current.getLatitude() : 37.5665;
+            final double lng = current != null ? current.getLongitude() : 126.9780;
+            final boolean usingFallback = current == null;
+
+            if (getActivity() == null || !isAdded()) return;
+            requireActivity().runOnUiThread(() -> {
+                if (!isAdded() || getContext() == null) return;
+
+                ApiService api = RetrofitClient.getApiService(requireContext());
+                api.listNearbyHospitals(lat, lng, DEFAULT_RADIUS_KM, null, null, null)
+                        .enqueue(new Callback<List<HospitalNearbyResponse>>() {
+                            @Override
+                            public void onResponse(Call<List<HospitalNearbyResponse>> call,
+                                                   Response<List<HospitalNearbyResponse>> response) {
+                                if (!isAdded() || getContext() == null) return;
+                                progressHospitals.setVisibility(View.GONE);
+                                if (response.isSuccessful() && response.body() != null) {
+                                    hospitals.clear();
+                                    hospitals.addAll(response.body());
+                                    sortHospitals();
+                                    adapter.notifyDataSetChanged();
+                                    if (usingFallback) {
+                                        Toast.makeText(requireContext(),
+                                                "현재 위치를 가져올 수 없어 서울 기준으로 표시합니다.",
+                                                Toast.LENGTH_LONG).show();
+                                    } else if (hospitals.isEmpty()) {
+                                        Toast.makeText(requireContext(),
+                                                "주변 동물병원을 찾지 못했습니다.",
+                                                Toast.LENGTH_SHORT).show();
+                                    }
+                                } else {
+                                    Toast.makeText(requireContext(),
+                                            "병원 검색 실패 (HTTP " + response.code() + ")",
+                                            Toast.LENGTH_SHORT).show();
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<List<HospitalNearbyResponse>> call, Throwable t) {
+                                if (!isAdded() || getContext() == null) return;
+                                progressHospitals.setVisibility(View.GONE);
+                                Toast.makeText(requireContext(),
+                                        "병원 검색 실패: " + t.getClass().getSimpleName(),
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            });
         });
     }
 
     private void sortHospitals() {
         Collections.sort(hospitals, Comparator
-                .comparing((HospitalNearbyResponse h) -> !HospitalFavoritePrefs.isFavorite(requireContext(), h.getKakaoPlaceId()))
+                .comparing((HospitalNearbyResponse h) -> !Boolean.TRUE.equals(h.getFavorited()))
                 .thenComparing(h -> h.getDistanceKm() == null ? Double.MAX_VALUE : h.getDistanceKm()));
     }
 
@@ -229,12 +248,14 @@ public class HospitalFragment extends Fragment {
                         + " " + (item.getAddress() != null ? item.getAddress() : "");
                 if (q.trim().isEmpty()) return;
                 String query = Uri.encode(q.trim());
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://map.kakao.com/link/search/" + query)));
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://map.kakao.com/link/search/" + query)));
             });
 
             StringBuilder meta = new StringBuilder();
             if (item.getDistanceKm() != null) {
-                meta.append("거리 약 ").append(String.format(java.util.Locale.getDefault(), "%.2fkm", item.getDistanceKm()));
+                meta.append("거리 약 ").append(
+                        String.format(java.util.Locale.getDefault(), "%.2fkm", item.getDistanceKm()));
             }
             if (item.getPhone() != null && !item.getPhone().isEmpty()) {
                 if (meta.length() > 0) meta.append("\n");
@@ -242,40 +263,79 @@ public class HospitalFragment extends Fragment {
             }
             textHospitalMeta.setText(meta.length() > 0 ? meta.toString() : "카카오맵에서 자세히 보기");
 
-            String kid = item.getKakaoPlaceId();
-            if (kid == null || kid.isEmpty()) {
+            // 서버 DB id가 없으면 즐겨찾기 버튼 숨김
+            if (item.getId() == null) {
                 btnFavorite.setVisibility(View.GONE);
                 textFavoriteBadge.setVisibility(View.GONE);
                 return;
             }
             btnFavorite.setVisibility(View.VISIBLE);
 
-            boolean fav = HospitalFavoritePrefs.isFavorite(requireContext(), kid);
+            boolean fav = Boolean.TRUE.equals(item.getFavorited());
+            updateFavoriteUi(fav);
+
+            btnFavorite.setOnClickListener(v -> {
+                boolean before = Boolean.TRUE.equals(item.getFavorited());
+                boolean after = !before;
+
+                // Optimistic update — 먼저 UI 반영
+                item.setFavorited(after);
+                updateFavoriteUi(after);
+                sortHospitals();
+                adapter.notifyDataSetChanged();
+
+                // 서버 반영
+                ApiService api = RetrofitClient.getApiService(requireContext());
+                Call<Void> call = after
+                        ? api.addHospitalFavorite(item.getId())
+                        : api.removeHospitalFavorite(item.getId());
+
+                call.enqueue(new Callback<Void>() {
+                    @Override
+                    public void onResponse(Call<Void> c, Response<Void> response) {
+                        if (!isAdded() || getContext() == null) return;
+                        if (!response.isSuccessful()) {
+                            // 서버 실패 시 롤백
+                            item.setFavorited(before);
+                            sortHospitals();
+                            adapter.notifyDataSetChanged();
+                            Toast.makeText(requireContext(),
+                                    "찜 변경 실패 (HTTP " + response.code() + ")",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<Void> c, Throwable t) {
+                        if (!isAdded() || getContext() == null) return;
+                        // 네트워크 실패 시 롤백
+                        item.setFavorited(before);
+                        sortHospitals();
+                        adapter.notifyDataSetChanged();
+                        Toast.makeText(requireContext(),
+                                "네트워크 오류로 찜 변경에 실패했습니다.",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+        }
+
+        private void updateFavoriteUi(boolean fav) {
             textFavoriteBadge.setVisibility(fav ? View.VISIBLE : View.GONE);
             textFavoriteBadge.setText(fav ? "찜한 병원" : "찜");
             btnFavorite.setIconResource(fav ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
-            int tint = ContextCompat.getColor(requireContext(),
+            int tint = ContextCompat.getColor(itemView.getContext(),
                     fav ? R.color.semantic_warning : R.color.app_on_surface_variant);
             btnFavorite.setIconTint(ColorStateList.valueOf(tint));
             itemView.setScaleX(fav ? 1.005f : 1f);
             itemView.setScaleY(fav ? 1.005f : 1f);
             if (itemView instanceof MaterialCardView) {
                 MaterialCardView card = (MaterialCardView) itemView;
-                card.setStrokeColor(ContextCompat.getColor(requireContext(),
+                card.setStrokeColor(ContextCompat.getColor(itemView.getContext(),
                         fav ? R.color.semantic_warning : R.color.app_outline));
-                card.setCardBackgroundColor(ContextCompat.getColor(requireContext(),
+                card.setCardBackgroundColor(ContextCompat.getColor(itemView.getContext(),
                         fav ? R.color.app_secondary_container : R.color.app_surface));
             }
-
-            btnFavorite.setOnClickListener(v -> {
-                boolean before = HospitalFavoritePrefs.isFavorite(requireContext(), kid);
-                boolean after = !before;
-                HospitalFavoritePrefs.setFavorite(requireContext(), kid, after);
-                item.setFavorited(after);
-                textFavoriteBadge.setVisibility(after ? View.VISIBLE : View.GONE);
-                sortHospitals();
-                adapter.notifyDataSetChanged();
-            });
         }
     }
 }

@@ -45,14 +45,17 @@ public class SignupActivity extends AppCompatActivity {
         Button loginbutton = findViewById(R.id.loginButton);
 
 
-        signupbutton.setOnClickListener(v -> signup());
+        signupbutton.setOnClickListener(v -> {
+            signupbutton.setEnabled(false);
+            signup(signupbutton);
+        });
         loginbutton.setOnClickListener(v -> {
             Intent intent = new Intent(SignupActivity.this, LoginActivity.class);
             startActivity(intent);
         });
     }
 
-    private void signup() {
+    private void signup(Button signupBtn) {
 
         EditText loginIdEdit = findViewById(R.id.editLoginId);
         EditText passwordEdit = findViewById(R.id.editPassword);
@@ -64,22 +67,27 @@ public class SignupActivity extends AppCompatActivity {
 
         if (loginId.isEmpty()) {
             Toast.makeText(this, "아이디를 입력해주세요.", Toast.LENGTH_SHORT).show();
+            signupBtn.setEnabled(true);
             return;
         }
         if (loginId.length() < 4) {
             Toast.makeText(this, "아이디는 4자 이상이어야 합니다.", Toast.LENGTH_SHORT).show();
+            signupBtn.setEnabled(true);
             return;
         }
         if (password.isEmpty()) {
             Toast.makeText(this, "비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show();
+            signupBtn.setEnabled(true);
             return;
         }
         if (password.length() < 6) {
             Toast.makeText(this, "비밀번호는 6자 이상이어야 합니다.", Toast.LENGTH_SHORT).show();
+            signupBtn.setEnabled(true);
             return;
         }
         if (name.isEmpty()) {
             Toast.makeText(this, "이름을 입력해주세요.", Toast.LENGTH_SHORT).show();
+            signupBtn.setEnabled(true);
             return;
         }
 
@@ -101,6 +109,7 @@ public class SignupActivity extends AppCompatActivity {
                     } else {
                         Toast.makeText(SignupActivity.this, "회원가입에 실패했습니다. 다시 시도해 주세요.", Toast.LENGTH_SHORT).show();
                     }
+                    signupBtn.setEnabled(true);
                 }
             }
 
@@ -108,6 +117,7 @@ public class SignupActivity extends AppCompatActivity {
             public void onFailure(Call<ApiResponse> call, Throwable t) {
                 Log.d("signup", "에러: " + t.getMessage());
                 Toast.makeText(SignupActivity.this, "서버에 연결할 수 없습니다. 네트워크를 확인해 주세요.", Toast.LENGTH_SHORT).show();
+                signupBtn.setEnabled(true);
             }
         });
     }

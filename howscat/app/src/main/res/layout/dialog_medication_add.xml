@@ -204,6 +204,17 @@
                             android:layout_height="wrap_content" />
                     </LinearLayout>
 
+                    <TextView
+                        android:id="@+id/labelMedAlarmTime1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1회차 시간"
+                        android:textSize="12sp"
+                        android:textColor="@color/app_on_surface_variant"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="4dp"
+                        android:visibility="gone" />
+
                     <LinearLayout
                         android:id="@+id/layoutMedAlarmTime"
                         android:layout_width="match_parent"
@@ -243,6 +254,64 @@
                             android:layout_weight="1"
                             android:layout_marginStart="10dp"
                             android:text="9:00 · 탭해서 변경"
+                            android:textSize="12sp"
+                            android:textColor="@color/app_primary_dark"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackgroundBorderless" />
+                    </LinearLayout>
+
+                    <!-- 2회/일 선택 시 표시되는 두 번째 알림 시간 -->
+                    <TextView
+                        android:id="@+id/labelMedAlarmTime2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2회차 시간"
+                        android:textSize="12sp"
+                        android:textColor="@color/app_on_surface_variant"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="4dp"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/layoutMedAlarmTime2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:visibility="gone">
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/toggleMedMeridiem2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:singleSelection="true"
+                            app:selectionRequired="true">
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnMeridiemAm2"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:text="오전"
+                                android:textSize="12sp"
+                                android:textAllCaps="false" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnMeridiemPm2"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:text="오후"
+                                android:textSize="12sp"
+                                android:textAllCaps="false" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                        <TextView
+                            android:id="@+id/textMedAlarmTime2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="10dp"
+                            android:text="21:00 · 탭해서 변경"
                             android:textSize="12sp"
                             android:textColor="@color/app_primary_dark"
                             android:clickable="true"

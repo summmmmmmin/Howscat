@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
         android:usesCleartextTraffic="false"
@@ -48,6 +49,15 @@
         </provider>
 
         <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".HealthScheduleAlarmReceiver"
             android:exported="false" />
 
@@ -55,8 +65,7 @@
             android:name=".FeedingAlarmReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.example.howscat.ACTION_FEEDING_MORNING" />
-                <action android:name="com.example.howscat.ACTION_FEEDING_EVENING" />
+                <action android:name="com.example.howscat.ACTION_FEEDING" />
             </intent-filter>
         </receiver>
 

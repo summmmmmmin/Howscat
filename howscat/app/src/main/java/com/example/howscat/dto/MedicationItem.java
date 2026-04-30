@@ -10,6 +10,8 @@ public class MedicationItem {
     private Boolean alarmEnabled;
     private Integer alarmHour;
     private Integer alarmMinute;
+    private Integer alarmHour2;
+    private Integer alarmMinute2;
     private String notes;
 
     public Long getMedicationId() { return medicationId; }
@@ -21,5 +23,7 @@ public class MedicationItem {
     public Boolean getAlarmEnabled() { return alarmEnabled; }
     public Integer getAlarmHour() { return alarmHour; }
     public Integer getAlarmMinute() { return alarmMinute; }
+    public Integer getAlarmHour2() { return alarmHour2; }
+    public Integer getAlarmMinute2() { return alarmMinute2; }
     public String getNotes() { return notes; }
 }

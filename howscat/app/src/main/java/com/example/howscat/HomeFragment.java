@@ -128,6 +128,7 @@ public class HomeFragment extends Fragment {
             @Override
             public void onResponse(@NonNull Call<AiSummaryResponse> call,
                                    @NonNull Response<AiSummaryResponse> response) {
+                if (!isAdded() || getContext() == null) return;
                 if (response.isSuccessful() && response.body() != null
                         && response.body().getSummary() != null) {
                     textAiSummary.setText(response.body().getSummary());
@@ -140,6 +141,7 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onFailure(@NonNull Call<AiSummaryResponse> call, @NonNull Throwable t) {
+                if (!isAdded() || getContext() == null) return;
                 textAiSummary.setText("🐾 네트워크 오류로 AI 분석을 불러오지 못했습니다.");
             }
         });
@@ -214,13 +216,13 @@ public class HomeFragment extends Fragment {
                 final HealthScheduleItem nextVaccineToEdit = nextVaccineFuture;
 
                 if (nextCheckupToEdit != null) {
-                    textNextCheckup.setText("건강검진 · " + nextCheckupToEdit.getNextDate());
+                    textNextCheckup.setText("건강검진 · " + fmtDateShort(nextCheckupToEdit.getNextDate()));
                 } else {
                     textNextCheckup.setText("건강검진 · 일정 없음");
                 }
 
                 if (nextVaccineToEdit != null) {
-                    textNextVaccine.setText("예방접종 · " + nextVaccineToEdit.getNextDate());
+                    textNextVaccine.setText("예방접종 · " + fmtDateShort(nextVaccineToEdit.getNextDate()));
                 } else {
                     textNextVaccine.setText("예방접종 · 일정 없음");
                 }
@@ -329,6 +331,7 @@ public class HomeFragment extends Fragment {
                     api.updateHealthSchedule(catId, item.getHealthScheduleId(), req).enqueue(new Callback<Void>() {
                         @Override
                         public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                            if (!isAdded() || getContext() == null) return;
                             if (response.isSuccessful()) {
                                 Toast.makeText(requireContext(), "저장 완료", Toast.LENGTH_SHORT).show();
                                 HealthScheduleAlarmScheduler.syncAlarms(requireContext(), catId);
@@ -411,6 +414,17 @@ public class HomeFragment extends Fragment {
                     .beginTransaction()
                     .replace(R.id.fragment_container, fragment)
                     .commit();
+        }
+    }
+
+    private static String fmtDateShort(String dateStr) {
+        if (dateStr == null || dateStr.length() < 10) return dateStr != null ? dateStr : "";
+        try {
+            int month = Integer.parseInt(dateStr.substring(5, 7));
+            int day   = Integer.parseInt(dateStr.substring(8, 10));
+            return month + "/" + day;
+        } catch (Exception e) {
+            return dateStr;
         }
     }
 

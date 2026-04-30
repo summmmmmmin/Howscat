@@ -29,6 +29,8 @@ import java.util.Map;
 
 import com.example.howscat.dto.ApiResponse;
 import com.example.howscat.dto.CareWeightRequest;
+import com.example.howscat.dto.CatResponse;
+import com.example.howscat.dto.WeightGoalRequest;
 import com.example.howscat.dto.CalendarEventItem;
 import com.example.howscat.dto.LitterBoxCreateRequest;
 import com.example.howscat.dto.MedicationCreateRequest;
@@ -51,7 +53,8 @@ import java.util.Locale;
 
 public class CatFragment extends Fragment {
 
-    private static final String PREF_WEIGHT_GOAL = "weight_goal";
+    // 목표 체중: 서버에서 로드, 로컬 캐시 (앱 재설치 후에도 유지)
+    private float cachedWeightGoal = 0f;
 
     private SimpleLineChartView chartWeightTrend;
     private SimpleLineChartView chartObesityTrend;
@@ -97,7 +100,7 @@ public class CatFragment extends Fragment {
         btnWeightGoal.setOnClickListener(v -> showWeightGoalDialog());
 
         loadWeightAndObesityHistory();
-        updateWeightGoalDisplay(null);
+        loadWeightGoalFromServer();
         animateCatEntry(view);
         return view;
     }
@@ -131,19 +134,67 @@ public class CatFragment extends Fragment {
     }
 
     private float getWeightGoal() {
-        if (getContext() == null) return 0f;
+        return cachedWeightGoal;
+    }
+
+    private void loadWeightGoalFromServer() {
+        if (!isAdded() || getContext() == null) return;
         Long catId = getCurrentCatId();
-        if (catId == null || catId <= 0) return 0f;
-        return getContext().getSharedPreferences(PREF_WEIGHT_GOAL, Context.MODE_PRIVATE)
-                .getFloat("goal_" + catId, 0f);
+        if (catId == null || catId <= 0) return;
+
+        RetrofitClient.getApiService(requireContext()).getCat(catId)
+                .enqueue(new retrofit2.Callback<CatResponse>() {
+                    @Override
+                    public void onResponse(@NonNull retrofit2.Call<CatResponse> call,
+                                           @NonNull retrofit2.Response<CatResponse> response) {
+                        if (!isAdded() || getContext() == null) return;
+                        if (response.isSuccessful() && response.body() != null) {
+                            Float goal = response.body().getWeightGoal();
+                            cachedWeightGoal = goal != null ? goal : 0f;
+                            updateWeightGoalDisplay(null);
+                        }
+                    }
+                    @Override
+                    public void onFailure(@NonNull retrofit2.Call<CatResponse> call, @NonNull Throwable t) {
+                        // 실패 시 cachedWeightGoal 그대로 유지 (기본값 0)
+                    }
+                });
     }
 
     private void saveWeightGoal(float goal) {
-        if (getContext() == null) return;
+        if (!isAdded() || getContext() == null) return;
         Long catId = getCurrentCatId();
         if (catId == null || catId <= 0) return;
-        getContext().getSharedPreferences(PREF_WEIGHT_GOAL, Context.MODE_PRIVATE)
-                .edit().putFloat("goal_" + catId, goal).apply();
+
+        float previous = cachedWeightGoal;
+        cachedWeightGoal = goal; // 낙관적 업데이트
+
+        RetrofitClient.getApiService(requireContext())
+                .updateWeightGoal(catId, new WeightGoalRequest(goal))
+                .enqueue(new retrofit2.Callback<Void>() {
+                    @Override
+                    public void onResponse(@NonNull retrofit2.Call<Void> call,
+                                           @NonNull retrofit2.Response<Void> response) {
+                        if (!isAdded() || getContext() == null) return;
+                        if (!response.isSuccessful()) {
+                            cachedWeightGoal = previous; // 실패 시 롤백
+                            updateWeightGoalDisplay(null);
+                            Toast.makeText(requireContext(),
+                                    "목표 체중 저장 실패 (HTTP " + response.code() + ")",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    @Override
+                    public void onFailure(@NonNull retrofit2.Call<Void> call, @NonNull Throwable t) {
+                        cachedWeightGoal = previous; // 실패 시 롤백
+                        if (isAdded() && getContext() != null) {
+                            updateWeightGoalDisplay(null);
+                            Toast.makeText(requireContext(),
+                                    "목표 체중 저장 실패 (네트워크 오류)",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
     }
 
     private void showWeightGoalDialog() {
@@ -237,27 +288,58 @@ public class CatFragment extends Fragment {
         MaterialButtonToggleGroup toggleMeridiem = dialogView.findViewById(R.id.toggleMedMeridiem);
         MaterialSwitch switchAlarm = dialogView.findViewById(R.id.switchMedAlarm);
         EditText editNotes = dialogView.findViewById(R.id.editMedNotes);
+        View labelTime1 = dialogView.findViewById(R.id.labelMedAlarmTime1);
+        View labelTime2 = dialogView.findViewById(R.id.labelMedAlarmTime2);
+        View layoutTime2 = dialogView.findViewById(R.id.layoutMedAlarmTime2);
+        MaterialButtonToggleGroup toggleMeridiem2 = dialogView.findViewById(R.id.toggleMedMeridiem2);
+        TextView textAlarmTime2 = dialogView.findViewById(R.id.textMedAlarmTime2);
 
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         if (editStartDate != null) editStartDate.setText(today);
 
-        // 기본 오전 9시
-        final int[] alarmHour = {9};    // 0-23 실제 시간
+        final int[] alarmHour = {9};
         final int[] alarmMinute = {0};
         final boolean[] isAm = {true};
+        final int[] alarmHour2 = {21};
+        final int[] alarmMinute2 = {0};
+        final boolean[] isAm2 = {false};
 
         if (toggleFreq != null) toggleFreq.check(R.id.btnFreqOnce);
         if (toggleMeridiem != null) toggleMeridiem.check(R.id.btnMeridiemAm);
+        if (toggleMeridiem2 != null) toggleMeridiem2.check(R.id.btnMeridiemPm2);
+
+        Runnable updateTwiceVis = () -> {
+            boolean isTwice = toggleFreq != null
+                    && toggleFreq.getCheckedButtonId() == R.id.btnFreqTwice;
+            int vis = isTwice ? View.VISIBLE : View.GONE;
+            if (labelTime1 != null) labelTime1.setVisibility(vis);
+            if (labelTime2 != null) labelTime2.setVisibility(vis);
+            if (layoutTime2 != null) layoutTime2.setVisibility(vis);
+        };
+        updateTwiceVis.run();
+        if (toggleFreq != null) {
+            toggleFreq.addOnButtonCheckedListener((g, id, chk) -> { if (chk) updateTwiceVis.run(); });
+        }
 
         if (toggleMeridiem != null) {
             toggleMeridiem.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
                 if (!isChecked) return;
                 isAm[0] = (checkedId == R.id.btnMeridiemAm);
-                // 현재 12h 시간을 유지하면서 오전/오후 반영
                 int h12 = alarmHour[0] % 12 == 0 ? 12 : alarmHour[0] % 12;
                 alarmHour[0] = isAm[0] ? (h12 % 12) : (h12 % 12 + 12);
                 if (textAlarmTime != null) {
                     textAlarmTime.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", h12, alarmMinute[0]));
+                }
+            });
+        }
+        if (toggleMeridiem2 != null) {
+            toggleMeridiem2.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                isAm2[0] = (checkedId == R.id.btnMeridiemAm2);
+                int h12 = alarmHour2[0] % 12 == 0 ? 12 : alarmHour2[0] % 12;
+                alarmHour2[0] = isAm2[0] ? (h12 % 12) : (h12 % 12 + 12);
+                if (textAlarmTime2 != null) {
+                    textAlarmTime2.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", h12, alarmMinute2[0]));
                 }
             });
         }
@@ -269,16 +351,30 @@ public class CatFragment extends Fragment {
             editEndDate.setOnClickListener(v -> showDatePicker(editEndDate));
         }
         if (textAlarmTime != null) {
-            textAlarmTime.setOnClickListener(v -> {
-                int h12init = alarmHour[0] % 12 == 0 ? 12 : alarmHour[0] % 12;
-                new TimePickerDialog(requireContext(), (tp, h, m) -> {
-                    // h는 0-11 (12h picker), 실제 시간 = 오전이면 h%12, 오후면 h%12+12
-                    alarmMinute[0] = m;
-                    int h12 = h == 0 ? 12 : h;
-                    alarmHour[0] = isAm[0] ? (h % 12) : (h % 12 + 12);
-                    textAlarmTime.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", h12, m));
-                }, h12init == 12 ? 0 : h12init, alarmMinute[0], false).show();
-            });
+            // 24시간제로 열고, 결과를 AM/PM 토글에 동기화
+            textAlarmTime.setOnClickListener(v -> new TimePickerDialog(requireContext(), (tp, h, m) -> {
+                alarmHour[0]   = h;
+                alarmMinute[0] = m;
+                isAm[0] = h < 12;
+                if (toggleMeridiem != null)
+                    toggleMeridiem.check(isAm[0] ? R.id.btnMeridiemAm : R.id.btnMeridiemPm);
+                int h12 = (h % 12 == 0) ? 12 : (h % 12);
+                textAlarmTime.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", h12, m));
+            }, alarmHour[0], alarmMinute[0], true).show());
+        }
+        if (textAlarmTime2 != null) {
+            // 초기 표시를 alarmHour2(21시)에 맞게 설정
+            int initH12 = (alarmHour2[0] % 12 == 0) ? 12 : (alarmHour2[0] % 12);
+            textAlarmTime2.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", initH12, alarmMinute2[0]));
+            textAlarmTime2.setOnClickListener(v -> new TimePickerDialog(requireContext(), (tp, h, m) -> {
+                alarmHour2[0]   = h;
+                alarmMinute2[0] = m;
+                isAm2[0] = h < 12;
+                if (toggleMeridiem2 != null)
+                    toggleMeridiem2.check(isAm2[0] ? R.id.btnMeridiemAm2 : R.id.btnMeridiemPm2);
+                int h12 = (h % 12 == 0) ? 12 : (h % 12);
+                textAlarmTime2.setText(String.format(Locale.getDefault(), "%d:%02d · 탭해서 변경", h12, m));
+            }, alarmHour2[0], alarmMinute2[0], true).show());
         }
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
@@ -312,10 +408,13 @@ public class CatFragment extends Fragment {
 
             boolean alarmEnabled = switchAlarm != null && switchAlarm.isChecked();
             String notes = editNotes.getText() != null ? editNotes.getText().toString().trim() : "";
+            boolean isTwice = "TWICE_DAILY".equals(freq);
 
             MedicationCreateRequest req = new MedicationCreateRequest(
                     name, dosage, freq, startDate, endDate,
-                    alarmEnabled, alarmHour[0], alarmMinute[0], notes.isEmpty() ? null : notes);
+                    alarmEnabled, alarmHour[0], alarmMinute[0],
+                    isTwice ? alarmHour2[0] : null, isTwice ? alarmMinute2[0] : null,
+                    notes.isEmpty() ? null : notes);
 
             ApiService api = RetrofitClient.getApiService(requireContext());
             api.addMedication(catId, req).enqueue(new retrofit2.Callback<ApiResponse>() {
@@ -769,7 +868,7 @@ public class CatFragment extends Fragment {
             double recommendedFoodG = der / feedKcalPerG;
             double recommendedWaterMl = weightKg * 50.0;
             textResult.setText(String.format(Locale.getDefault(),
-                    "물: %.0f mL\n사료: 약 %.0f g/일\n(나이 보정 %.1f배)", recommendedWaterMl, recommendedFoodG, ageFactor));
+                    "물: %.0f mL\n사료: 약 %.0f g/일", recommendedWaterMl, recommendedFoodG));
 
             String today2 = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             CareWeightRequest req = new CareWeightRequest(weightKg, recommendedWaterMl, recommendedFoodG, today2);
