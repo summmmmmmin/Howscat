@@ -16,7 +16,7 @@
 <br>
 
 > 토사물 사진 한 장으로 AI 분석 · 체중·먹이·건강검진·투약·화장실까지 통합 관리
-> Spring Boot 백엔드 직접 설계 · Railway 실배포 · Gemini Vision API 연동
+> Spring Boot 백엔드 직접 설계 · AWS EC2 실배포 · Gemini Vision API 연동
 > 기획 → 설계 → 구현 → 배포 **1인 풀스택 개발**
 
 <br>
