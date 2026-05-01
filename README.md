@@ -51,7 +51,7 @@
 | **AI 건강 요약** | 최근 7일 기록을 종합해 한 줄 건강 조언 생성 |
 | **체중 & 사료 계산** | 몸무게 입력 시 적정 물·사료량 자동 계산 및 서버 저장 |
 | **비만도 검사** | 허리·뒷다리 치수로 체지방률 추정 및 레벨 판정 |
-| **통합 캘린더** | 메모·체중·구토·건강검진·예방접종을 한 화면에서 관리 |
+| **통합 캘린더** | 메모·체중·구토·건강검진·예방접종·투약·화장실·진료 8종을 한 화면에서 관리 |
 | **정확 알림** | 건강검진·예방접종 D-7 / D-1 / D-Day 3단계 + 스누즈 |
 | **주변 병원 검색** | GPS 기반 반경 내 동물병원 검색 + 즐겨찾기 |
 | **투약 기록** | 투약 일정 등록·알림·이력 관리 |
@@ -83,9 +83,10 @@
 | 언어 | Java 17 |
 | 인증 | JWT — Access Token + Refresh Token |
 | DB 접근 | Spring Data JPA + JdbcTemplate (단순 CRUD는 JPA, 복잡 집계·UNION 쿼리는 JdbcTemplate) |
-| Cache / 인증 저장 | Redis — Refresh Token 저장 / Blacklist / AI 요약 캐시 |
+| Cache / 인증 저장 | Redis — Refresh Token 저장 / JWT Blacklist (로그아웃 무효화) |
+| AI 요약 캐시 | MySQL `ai_health_summary_cache` 테이블 — 6시간 캐시 (`DATE_SUB(NOW(), INTERVAL 6 HOUR)`) |
 | AI | Google Gemini 2.5 Flash — Vision (이미지 분석) + Text (건강 요약) |
-| 외부 API | Kakao Local (병원 검색 프록시) |
+| 외부 API | Kakao Local (병원 검색 프록시) · AWS S3 (이미지 업로드) |
 | 스키마 관리 | ApplicationRunner `@Order(1)` — 배포 시 DDL 자동 실행 |
 | 배포 | AWS EC2 — Docker 컨테이너 · GitHub Actions CI/CD |
 
@@ -106,16 +107,17 @@
 
 **Spring Boot — AWS EC2 배포**
 - 인증 API `/api/users/` — login · signup · refresh
-- 케어 API `/cats/{catId}/` — 40개 이상 엔드포인트, catId 소유권 검증
+- 케어 API `/cats/{catId}/` — 44개 엔드포인트, catId 소유권 검증
 - Gemini Vision — 토사물 이미지 Base64 → 색상·형태·위험도 JSON 분석
 - Gemini Text — 7일 케어 데이터 집계 → 한 줄 건강 조언 (6시간 캐시)
 - Kakao Local 프록시 — GPS 좌표 기반 주변 병원 검색
-- SchemaInitializer — 앱 시작 시 16개 테이블 자동 생성 · 컬럼 마이그레이션
+- AWS S3 — 이미지 업로드 (Magic Byte 검증 · 10MB 제한)
+- SchemaInitializer (`@Order(1)`) — 11개 테이블 자동 생성 + CareTableInitializer (`@Order(2)`) — 3개 테이블 = 총 14개 · 컬럼 마이그레이션
 
 ↓ &nbsp;&nbsp; Spring Data JPA / JdbcTemplate
 
-**MySQL — AWS RDS**
-- 16개 테이블 (앱 시작 시 자동 생성, 수동 마이그레이션 불필요)
+**MySQL — AWS EC2**
+- 14개 테이블 (앱 시작 시 자동 생성, 수동 마이그레이션 불필요)
 
 </td>
 </tr>
@@ -134,17 +136,29 @@
 ### 재부팅 후 알람 자동 복구
 AlarmManager 알람은 재부팅 시 OS가 전부 삭제한다. `BootReceiver`가 `BOOT_COMPLETED` / `LOCKED_BOOT_COMPLETED`를 수신하면 SharedPreferences StringSet에 저장된 모든 catId를 복원해 건강검진·투약·급여 알람을 전부 재등록한다. 마지막으로 조회한 고양이 ID도 이중 안전장치로 추가해 알람 소실 케이스를 원천 차단했다.
 
-### Railway 무중단 스키마
-Railway는 빈 DB를 제공한다. `SchemaInitializer`(ApplicationRunner)로 앱 시작 시 16개 테이블을 자동 생성하고, 기존 테이블에 컬럼이 없을 경우 `INFORMATION_SCHEMA`를 조회해 ALTER만 실행 — 재배포 시 수동 마이그레이션 0건.
+### 무중단 스키마 자동화
+별도 마이그레이션 툴 없이 `SchemaInitializer`(ApplicationRunner `@Order(1)`)로 11개 테이블, `CareTableInitializer`(`@Order(2)`)로 3개 테이블 — 총 14개를 앱 시작 시 자동 생성하고, 기존 테이블에 컬럼이 없을 경우 `INFORMATION_SCHEMA`를 조회해 ALTER만 실행 — 재배포 시 수동 마이그레이션 0건.
 
 ### 캘린더 단일 쿼리
-메모·건강일정·체중·구토 5개 소스를 `UNION ALL`로 묶고, 투약·화장실·진료 3개는 별도 쿼리로 합산해 총 8개 데이터 소스를 날짜순 단일 응답으로 반환. 각 이벤트 타입(MEMO / HEALTH_CHECKUP / HEALTH_VACCINE / WEIGHT / VOMIT / MEDICATION / LITTER / VET_VISIT)을 클라이언트에서 구분해 아이콘·색상을 다르게 표시.
+메모·건강일정(완료 last_date)·건강일정(예정 next_date)·체중·구토 총 5개 SELECT를 `UNION ALL`로 묶어 catId 바인드 파라미터 15개 단일 쿼리로 처리하고, 투약·화장실·진료 3개는 별도 1쿼리로 합산 — 총 8개 데이터 소스를 날짜순 단일 응답으로 반환. 각 이벤트 타입(MEMO / HEALTH_CHECKUP / HEALTH_VACCINE / WEIGHT / VOMIT / MEDICATION / LITTER / VET_VISIT)을 클라이언트에서 구분해 아이콘·색상을 다르게 표시.
 
 ### RER 기반 영양 계산
 안정 시 에너지 요구량 RER = (체중 × 30) + 70 kcal에 연령 계수를 곱해 DER를 산출하고, 사료 kcal/g으로 나눠 1일 권장 사료량을 계산한다. 체중 × 50ml로 하루 권장 음수량도 함께 제공한다.
 
 ### 케어 결과 서버 복원
 물·사료 계산 결과를 서버 DB(`weight_record`)에도 저장해두어, 앱 재설치·재로그인 후에도 홈 화면에서 마지막 계산값을 자동으로 복원.
+
+---
+
+## 트러블슈팅
+
+| # | 발견 | 원인 | 해결 | 결과 |
+|---|------|------|------|------|
+| 1 | **재부팅 후 알람 전체 소실** | Android AlarmManager는 재부팅 시 OS가 모든 알람 삭제 | `BootReceiver`가 `BOOT_COMPLETED` · `LOCKED_BOOT_COMPLETED` 수신 시 SharedPreferences의 catId 목록 복원 후 `MedicationAlarmScheduler.syncAlarms()` · `HealthScheduleAlarmScheduler.syncAlarms()` 일괄 재호출 | 재부팅 후 알람 100% 복구 |
+| 2 | **로그아웃 후 전 계정 알람 재울림** | SharedPreferences만 초기화하고 AlarmManager PendingIntent를 취소하지 않음 | 로그아웃 3경로(MypageFragment · LoginActivity · AuthAuthenticator) 모두에서 `FeedingAlarmScheduler.cancelAll()` · `MedicationAlarmScheduler.cancelAll()` · `HealthScheduleAlarmScheduler.cancelAll()` 선 호출 후 prefs 초기화 | 로그아웃 즉시 전 계정 알람 완전 취소 |
+| 3 | **토큰 만료 시 `CalledFromWrongThreadException` 크래시** | `AuthAuthenticator.authenticate()`는 OkHttp 백그라운드 스레드에서 실행 — `startActivity()` 직접 호출 시 UI 스레드 규칙 위반 | `new Handler(Looper.getMainLooper()).post(...)` 로 로그인 화면 이동 위임. `volatile boolean redirecting` 플래그로 중복 리다이렉트 방지 | 크래시 없이 로그인 화면으로 투명하게 전환 |
+| 4 | **고해상도 이미지 OOM** | 12MP 원본 Bitmap 디코딩 시 ~48MB — 앱 메모리 한계 초과 | `BitmapFactory.Options.inSampleSize = 4` 설정 후 JPEG quality 80 압축, Base64 인코딩 전송 | 메모리 **16배 감소** (48MB → 3MB), OOM 완전 해소 |
+| 5 | **즐겨찾기 버튼 클릭 후 Jank(무반응)** | 서버 응답 대기 중 UI 갱신 없음 — 네트워크 지연 동안 버튼이 무반응 | 클릭 즉시 `item.setFavorited(after)` + `notifyDataSetChanged()`로 UI 선반영(낙관적 업데이트), 서버 실패 시에만 `item.setFavorited(before)` 롤백 | 클릭 즉시 반응, Jank 완전 제거 |
 
 ---
 
@@ -164,6 +178,7 @@ Railway는 빈 DB를 제공한다. `SchemaInitializer`(ApplicationRunner)로 앱
 | `HealthScheduleAlarmScheduler` | D-7 / D-1 / D-Day 알람 등록 |
 | `HealthScheduleAlarmReceiver` | 알람 수신 + 스누즈 처리 |
 | `MedicationAlarmScheduler` | 투약 알람 |
+| `BootReceiver` | 재부팅 시 BOOT_COMPLETED 수신 → 전체 알람 자동 복구 |
 | `network/AuthInterceptor` | 모든 요청에 Bearer 토큰 자동 첨부 |
 | `network/AuthAuthenticator` | 401 → 자동 토큰 갱신 |
 | `network/ApiService` | Retrofit 인터페이스 (44개 엔드포인트) |
