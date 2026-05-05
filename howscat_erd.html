@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Howscat DB ERD — 16 Tables</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d1117;
+  font-family: 'Consolas', 'Courier New', monospace;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  padding: 28px 20px 10px;
+}
+header h1 {
+  font-size: 22px;
+  color: #f1f5f9;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+header p {
+  color: #64748b;
+  font-size: 12.5px;
+}
+
+.legend {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 14px 20px 18px;
+  border-bottom: 1px solid #1e293b;
+  margin-bottom: 6px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 11.5px;
+}
+.legend-swatch {
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.key-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 0 20px 16px;
+}
+.key-legend span {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.k { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+.k-pk { background: #f59e0b; color: #1a1a1a; }
+.k-fk { background: #6366f1; color: #fff; }
+.k-uq { background: #10b981; color: #fff; }
+
+.conn-legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  padding: 0 20px 20px;
+}
+.conn-legend span {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.conn-line-sample {
+  width: 28px; height: 2px;
+  border-radius: 1px;
+}
+
+.erd-scroll {
+  overflow: auto;
+  padding: 10px 20px 50px;
+}
+#erd {
+  position: relative;
+}
+#svg-layer {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Table boxes */
+.tbl {
+  position: absolute;
+  width: 240px;
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 2;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  border: 1px solid transparent;
+  transition: box-shadow 0.15s;
+}
+.tbl:hover {
+  box-shadow: 0 4px 28px rgba(0,0,0,0.8), 0 0 0 2px rgba(255,255,255,0.15);
+  z-index: 10;
+}
+.tbl-head {
+  padding: 7px 10px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+  letter-spacing: 0.2px;
+}
+.tbl-head-icon { font-size: 11px; opacity: 0.85; }
+.tbl-head-name { flex: 1; }
+.tbl-head-count { font-size: 10px; opacity: 0.65; font-weight: 400; }
+
+.tbl-body { background: #1a2332; }
+
+.tbl-row {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  gap: 5px;
+  cursor: default;
+}
+.tbl-row:hover { background: rgba(255,255,255,0.04); }
+
+.badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+  letter-spacing: 0.2px;
+}
+.b-pk { background: #f59e0b; color: #1a1a1a; }
+.b-fk { background: #6366f1; color: #fff; }
+.b-uq { background: #10b981; color: #fff; }
+.b-empty { width: 22px; flex-shrink: 0; }
+
+.c-name {
+  font-size: 11px;
+  color: #c8d6e5;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.c-pk { color: #fbbf24 !important; }
+.c-fk { color: #a5b4fc !important; }
+
+.c-type {
+  font-size: 9.5px;
+  color: #3d5166;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🐱 Howscat — MySQL DB ERD</h1>
+  <p>AWS EC2 · Spring Boot 자동 생성 · 16개 테이블 · SchemaInitializer(11) + CareTableInitializer(3) + JPA @Entity(2)</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#1d4ed8"></div>Core 인증 (JPA)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#059669"></div>건강 기록</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#dc2626"></div>구토 분석</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#7c3aed"></div>캘린더 / 알림</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#374151"></div>병원</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#047857"></div>AI 캐시</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#b45309"></div>케어 기록</div>
+</div>
+
+<div class="key-legend">
+  <span><span class="k k-pk">PK</span> Primary Key</span>
+  <span><span class="k k-fk">FK</span> Foreign Key</span>
+  <span><span class="k k-uq">UQ</span> Unique</span>
+</div>
+
+<div class="conn-legend">
+  <span><div class="conn-line-sample" style="background:#4ade80"></div>1:N 관계</span>
+  <span><div class="conn-line-sample" style="background:#a78bfa"></div>1:1 관계</span>
+  <span><div class="conn-line-sample" style="background:#fb923c"></div>N:M 복합키</span>
+</div>
+
+<div class="erd-scroll">
+  <div id="erd">
+    <svg id="svg-layer"></svg>
+  </div>
+</div>
+
+<script>
+const W = 240;           // box width
+const HEADER_H = 32;     // header height
+const ROW_H = 22;        // each row height
+const PAD_B = 8;         // bottom padding
+
+// Category → color scheme
+const CAT_COLORS = {
+  core:     { hdr: '#1d4ed8', border: '#3b82f6' },
+  health:   { hdr: '#065f46', border: '#10b981' },
+  vomit:    { hdr: '#991b1b', border: '#ef4444' },
+  notif:    { hdr: '#5b21b6', border: '#8b5cf6' },
+  hospital: { hdr: '#1f2937', border: '#6b7280' },
+  ai:       { hdr: '#065f46', border: '#34d399' },
+  care:     { hdr: '#92400e', border: '#f59e0b' },
+};
+
+// Tables definition
+// x, y = top-left corner
+const TABLES = [
+  // ── Column C (core, x=530) ──────────────────────────────
+  {
+    id: 'users', label: 'users', cat: 'core', x: 530, y: 20,
+    note: 'JPA @Entity',
+    cols: [
+      { n: 'user_id',            t: 'INT',         k: 'PK' },
+      { n: 'login_id',           t: 'VARCHAR(50)',  k: 'UQ' },
+      { n: 'password',           t: 'VARCHAR' },
+      { n: 'name',               t: 'VARCHAR(50)' },
+      { n: 'last_viewed_cat_id', t: 'BIGINT' },
+      { n: 'created_at',         t: 'DATETIME' },
+      { n: 'updated_at',         t: 'DATETIME' },
+    ]
+  },
+  {
+    id: 'cat', label: 'cat', cat: 'core', x: 530, y: 268,
+    note: 'JPA @Entity',
+    cols: [
+      { n: 'cat_id',      t: 'BIGINT',   k: 'PK' },
+      { n: 'user_id',     t: 'INT',      k: 'FK' },
+      { n: 'name',        t: 'VARCHAR' },
+      { n: 'gender',      t: 'VARCHAR' },
+      { n: 'birth_date',  t: 'DATE' },
+      { n: 'weight_goal', t: 'FLOAT' },
+    ]
+  },
+  {
+    id: 'calendar_memo', label: 'calendar_memo', cat: 'notif', x: 530, y: 500,
+    cols: [
+      { n: 'calendar_memo_id', t: 'BIGINT',  k: 'PK' },
+      { n: 'cat_id',           t: 'BIGINT',  k: 'FK' },
+      { n: 'user_id',          t: 'INT',     k: 'FK' },
+      { n: 'health_type_id',   t: 'BIGINT',  k: 'FK' },
+      { n: 'content',          t: 'TEXT' },
+      { n: 'memo_date',        t: 'DATE' },
+    ]
+  },
+  {
+    id: 'ai_health_summary_cache', label: 'ai_health_summary_cache', cat: 'ai', x: 530, y: 720,
+    cols: [
+      { n: 'cat_id',       t: 'BIGINT',   k: 'PK' },
+      { n: 'summary',      t: 'TEXT' },
+      { n: 'generated_at', t: 'DATETIME' },
+    ]
+  },
+
+  // ── Column A (health, x=10) ──────────────────────────────
+  {
+    id: 'health_type', label: 'health_type', cat: 'health', x: 10, y: 20,
+    cols: [
+      { n: 'health_type_id',       t: 'BIGINT',     k: 'PK' },
+      { n: 'name',                 t: 'VARCHAR(100)' },
+      { n: 'default_cycle_month',  t: 'INT' },
+    ]
+  },
+  {
+    id: 'health_schedule', label: 'health_schedule', cat: 'health', x: 10, y: 168,
+    cols: [
+      { n: 'health_schedule_id', t: 'BIGINT', k: 'PK' },
+      { n: 'cat_id',             t: 'BIGINT', k: 'FK' },
+      { n: 'health_type_id',     t: 'BIGINT', k: 'FK' },
+      { n: 'next_date',          t: 'DATE' },
+      { n: 'last_date',          t: 'DATE' },
+      { n: 'alarm_enabled',      t: 'TINYINT(1)' },
+      { n: 'custom_cycle_month', t: 'INT' },
+    ]
+  },
+  {
+    id: 'weight_record', label: 'weight_record', cat: 'health', x: 10, y: 470,
+    cols: [
+      { n: 'weight_record_id',      t: 'BIGINT', k: 'PK' },
+      { n: 'cat_id',                t: 'BIGINT', k: 'FK' },
+      { n: 'weight',                t: 'DOUBLE' },
+      { n: 'recorded_at',           t: 'DATETIME' },
+      { n: 'recommended_water_ml',  t: 'DOUBLE' },
+      { n: 'recommended_food_g',    t: 'DOUBLE' },
+    ]
+  },
+  {
+    id: 'obesity_check_record', label: 'obesity_check_record', cat: 'health', x: 10, y: 716,
+    cols: [
+      { n: 'obesity_check_record_id',    t: 'BIGINT', k: 'PK' },
+      { n: 'cat_id',                     t: 'BIGINT', k: 'FK' },
+      { n: 'weight_record_id',           t: 'BIGINT', k: 'FK' },
+      { n: 'obesity_level',              t: 'VARCHAR(30)' },
+      { n: 'body_fat_percent',           t: 'DOUBLE' },
+      { n: 'recommended_target_weight',  t: 'DOUBLE' },
+      { n: 'recommended_water',          t: 'DOUBLE' },
+      { n: 'recommended_food',           t: 'DOUBLE' },
+      { n: 'checked_at',                 t: 'DATETIME' },
+    ]
+  },
+
+  // ── Column B (vomit, x=280) ──────────────────────────────
+  {
+    id: 'vomit_status', label: 'vomit_status', cat: 'vomit', x: 280, y: 20,
+    cols: [
+      { n: 'vomit_status_id', t: 'BIGINT',     k: 'PK' },
+      { n: 'color',           t: 'VARCHAR(30)' },
+      { n: 'shape',           t: 'VARCHAR(50)' },
+      { n: 'severity_level',  t: 'VARCHAR(20)' },
+      { n: 'guide_text',      t: 'TEXT' },
+    ]
+  },
+  {
+    id: 'vomit_record', label: 'vomit_record', cat: 'vomit', x: 280, y: 218,
+    cols: [
+      { n: 'vomit_record_id',  t: 'BIGINT',      k: 'PK' },
+      { n: 'cat_id',           t: 'BIGINT',       k: 'FK' },
+      { n: 'vomit_status_id',  t: 'BIGINT',       k: 'FK' },
+      { n: 'memo',             t: 'TEXT' },
+      { n: 'ai_result',        t: 'VARCHAR(500)' },
+      { n: 'has_hair',         t: 'TINYINT(1)' },
+      { n: 'image_path',       t: 'VARCHAR(500)' },
+      { n: 'created_at',       t: 'DATETIME' },
+    ]
+  },
+
+  // ── Column D (notif/hospital, x=800) ──────────────────────
+  {
+    id: 'notification', label: 'notification', cat: 'notif', x: 800, y: 20,
+    cols: [
+      { n: 'notification_id', t: 'BIGINT',      k: 'PK' },
+      { n: 'user_id',         t: 'INT',          k: 'FK' },
+      { n: 'cat_id',          t: 'BIGINT',       k: 'FK' },
+      { n: 'related_type',    t: 'VARCHAR(30)' },
+      { n: 'related_id',      t: 'BIGINT' },
+      { n: 'title',           t: 'VARCHAR(200)' },
+      { n: 'content',         t: 'TEXT' },
+      { n: 'scheduled_at',    t: 'DATETIME' },
+      { n: 'is_sent',         t: 'TINYINT(1)' },
+      { n: 'sent_at',         t: 'DATETIME' },
+    ]
+  },
+  {
+    id: 'hospital', label: 'hospital', cat: 'hospital', x: 800, y: 310,
+    cols: [
+      { n: 'hospital_id',  t: 'BIGINT',      k: 'PK' },
+      { n: 'name',         t: 'VARCHAR(200)' },
+      { n: 'address',      t: 'VARCHAR(500)' },
+      { n: 'latitude',     t: 'DOUBLE' },
+      { n: 'longitude',    t: 'DOUBLE' },
+      { n: 'phone',        t: 'VARCHAR(30)' },
+      { n: 'is_24h',       t: 'TINYINT(1)' },
+      { n: 'rating',       t: 'DOUBLE' },
+    ]
+  },
+  {
+    id: 'favorite_hospital', label: 'favorite_hospital', cat: 'hospital', x: 800, y: 570,
+    cols: [
+      { n: 'user_id',     t: 'INT',      k: 'PK' },
+      { n: 'hospital_id', t: 'BIGINT',   k: 'PK' },
+      { n: 'created_at',  t: 'DATETIME' },
+    ]
+  },
+
+  // ── Column E (care, x=1070) ────────────────────────────────
+  {
+    id: 'medication', label: 'medication', cat: 'care', x: 1070, y: 20,
+    cols: [
+      { n: 'medication_id',  t: 'BIGINT',     k: 'PK' },
+      { n: 'cat_id',         t: 'BIGINT',     k: 'FK' },
+      { n: 'user_id',        t: 'INT',        k: 'FK' },
+      { n: 'name',           t: 'VARCHAR(100)' },
+      { n: 'dosage',         t: 'VARCHAR(100)' },
+      { n: 'frequency',      t: 'VARCHAR(20)' },
+      { n: 'start_date',     t: 'DATE' },
+      { n: 'end_date',       t: 'DATE' },
+      { n: 'alarm_enabled',  t: 'TINYINT(1)' },
+      { n: 'alarm_hour',     t: 'INT' },
+      { n: 'alarm_minute',   t: 'INT' },
+      { n: 'alarm_hour2',    t: 'INT' },
+      { n: 'alarm_minute2',  t: 'INT' },
+      { n: 'notes',          t: 'TEXT' },
+      { n: 'created_at',     t: 'DATETIME' },
+    ]
+  },
+  {
+    id: 'litter_box_record', label: 'litter_box_record', cat: 'care', x: 1070, y: 440,
+    cols: [
+      { n: 'litter_box_record_id', t: 'BIGINT',     k: 'PK' },
+      { n: 'cat_id',               t: 'BIGINT',     k: 'FK' },
+      { n: 'user_id',              t: 'INT',        k: 'FK' },
+      { n: 'record_date',          t: 'DATE' },
+      { n: 'count',                t: 'INT' },
+      { n: 'color',                t: 'VARCHAR(20)' },
+      { n: 'shape',                t: 'VARCHAR(20)' },
+      { n: 'abnormal',             t: 'TINYINT(1)' },
+      { n: 'notes',                t: 'TEXT' },
+      { n: 'created_at',           t: 'DATETIME' },
+    ]
+  },
+  {
+    id: 'vet_visit', label: 'vet_visit', cat: 'care', x: 1070, y: 730,
+    cols: [
+      { n: 'vet_visit_id',  t: 'BIGINT',      k: 'PK' },
+      { n: 'cat_id',        t: 'BIGINT',       k: 'FK' },
+      { n: 'user_id',       t: 'INT',          k: 'FK' },
+      { n: 'visit_date',    t: 'DATE' },
+      { n: 'hospital_name', t: 'VARCHAR(200)' },
+      { n: 'diagnosis',     t: 'VARCHAR(500)' },
+      { n: 'prescription',  t: 'VARCHAR(500)' },
+      { n: 'notes',         t: 'TEXT' },
+      { n: 'created_at',    t: 'DATETIME' },
+    ]
+  },
+];
+
+// Connections: [fromId, fromCol, toId, toCol, type]
+// type: '1N' | '11' | 'NM'
+const CONNS = [
+  // Core relations
+  ['users', 'user_id',         'cat',                    'user_id',         '1N'],
+  // Cat → health
+  ['cat',   'cat_id',          'health_schedule',        'cat_id',          '1N'],
+  ['cat',   'cat_id',          'weight_record',          'cat_id',          '1N'],
+  ['cat',   'cat_id',          'obesity_check_record',   'cat_id',          '1N'],
+  // Cat → vomit
+  ['cat',   'cat_id',          'vomit_record',           'cat_id',          '1N'],
+  // Cat → calendar/cache
+  ['cat',   'cat_id',          'calendar_memo',          'cat_id',          '1N'],
+  ['cat',   'cat_id',          'ai_health_summary_cache','cat_id',          '11'],
+  // Cat → notifications
+  ['cat',   'cat_id',          'notification',           'cat_id',          '1N'],
+  // Cat → care records
+  ['cat',   'cat_id',          'medication',             'cat_id',          '1N'],
+  ['cat',   'cat_id',          'litter_box_record',      'cat_id',          '1N'],
+  ['cat',   'cat_id',          'vet_visit',              'cat_id',          '1N'],
+  // Users → various
+  ['users', 'user_id',         'calendar_memo',          'user_id',         '1N'],
+  ['users', 'user_id',         'notification',           'user_id',         '1N'],
+  ['users', 'user_id',         'medication',             'user_id',         '1N'],
+  ['users', 'user_id',         'litter_box_record',      'user_id',         '1N'],
+  ['users', 'user_id',         'vet_visit',              'user_id',         '1N'],
+  ['users', 'user_id',         'favorite_hospital',      'user_id',         'NM'],
+  // health_type relations
+  ['health_type','health_type_id','health_schedule',     'health_type_id',  '1N'],
+  ['health_type','health_type_id','calendar_memo',       'health_type_id',  '1N'],
+  // vomit
+  ['vomit_status','vomit_status_id','vomit_record',      'vomit_status_id', '1N'],
+  // weight → obesity
+  ['weight_record','weight_record_id','obesity_check_record','weight_record_id','11'],
+  // hospital
+  ['hospital','hospital_id',   'favorite_hospital',      'hospital_id',     'NM'],
+];
+
+const CONN_COLORS = { '1N': '#4ade80', '11': '#a78bfa', 'NM': '#fb923c' };
+
+// ── Build table lookup ────────────────────────────────────────
+const tblMap = {};
+TABLES.forEach(t => { tblMap[t.id] = t; });
+
+function tblHeight(t) {
+  return HEADER_H + t.cols.length * ROW_H + PAD_B;
+}
+
+// Row Y-center for a column by name
+function rowCY(tId, colName) {
+  const t = tblMap[tId];
+  const idx = t.cols.findIndex(c => c.n === colName);
+  if (idx === -1) return t.y + HEADER_H + ROW_H / 2;
+  return t.y + HEADER_H + idx * ROW_H + ROW_H / 2;
+}
+
+// ── Render table boxes ────────────────────────────────────────
+const erd = document.getElementById('erd');
+const svg = document.getElementById('svg-layer');
+
+TABLES.forEach(t => {
+  const colors = CAT_COLORS[t.cat];
+  const div = document.createElement('div');
+  div.className = 'tbl';
+  div.id = 'tbl_' + t.id;
+  div.style.left = t.x + 'px';
+  div.style.top  = t.y + 'px';
+  div.style.borderColor = colors.border + '55';
+
+  // Header
+  const head = document.createElement('div');
+  head.className = 'tbl-head';
+  head.style.background = colors.hdr;
+  head.innerHTML = `
+    <span class="tbl-head-icon">▣</span>
+    <span class="tbl-head-name">${t.label}</span>
+    <span class="tbl-head-count">${t.note || t.cols.length + ' cols'}</span>
+  `;
+  div.appendChild(head);
+
+  // Body rows
+  const body = document.createElement('div');
+  body.className = 'tbl-body';
+  t.cols.forEach(col => {
+    const row = document.createElement('div');
+    row.className = 'tbl-row';
+    let badge, nameClass = 'c-name';
+    if (col.k === 'PK') { badge = '<span class="badge b-pk">PK</span>'; nameClass += ' c-pk'; }
+    else if (col.k === 'FK') { badge = '<span class="badge b-fk">FK</span>'; nameClass += ' c-fk'; }
+    else if (col.k === 'UQ') { badge = '<span class="badge b-uq">UQ</span>'; }
+    else badge = '<span class="b-empty"></span>';
+
+    // Short type display
+    const shortType = col.t.split('(')[0];
+    row.innerHTML = `${badge}<span class="${nameClass}">${col.n}</span><span class="c-type">${shortType}</span>`;
+    body.appendChild(row);
+  });
+  div.appendChild(body);
+  erd.appendChild(div);
+});
+
+// ── Compute canvas size ───────────────────────────────────────
+let maxX = 0, maxY = 0;
+TABLES.forEach(t => {
+  maxX = Math.max(maxX, t.x + W + 20);
+  maxY = Math.max(maxY, t.y + tblHeight(t) + 30);
+});
+erd.style.width  = maxX + 'px';
+erd.style.height = maxY + 'px';
+svg.setAttribute('width',   maxX);
+svg.setAttribute('height',  maxY);
+svg.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
+
+// ── SVG defs: arrowhead markers ───────────────────────────────
+const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+Object.entries(CONN_COLORS).forEach(([type, color]) => {
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', `arr_${type}`);
+  marker.setAttribute('markerWidth',  '8');
+  marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('refX', '7');
+  marker.setAttribute('refY', '3');
+  marker.setAttribute('orient', 'auto');
+  const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  poly.setAttribute('points', '0 0, 8 3, 0 6');
+  poly.setAttribute('fill', color);
+  marker.appendChild(poly);
+  defs.appendChild(marker);
+
+  // Also a circle marker for the "one" side
+  const mCircle = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  mCircle.setAttribute('id', `dot_${type}`);
+  mCircle.setAttribute('markerWidth', '6');
+  mCircle.setAttribute('markerHeight', '6');
+  mCircle.setAttribute('refX', '3');
+  mCircle.setAttribute('refY', '3');
+  mCircle.setAttribute('orient', 'auto');
+  const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circ.setAttribute('cx', '3');
+  circ.setAttribute('cy', '3');
+  circ.setAttribute('r',  '2.5');
+  circ.setAttribute('fill', color);
+  mCircle.appendChild(circ);
+  defs.appendChild(mCircle);
+});
+svg.appendChild(defs);
+
+// ── Draw connections ──────────────────────────────────────────
+CONNS.forEach(([fId, fCol, tId, tCol, type]) => {
+  const from = tblMap[fId];
+  const to   = tblMap[tId];
+  if (!from || !to) return;
+
+  const color = CONN_COLORS[type];
+
+  const fy = rowCY(fId, fCol);
+  const ty = rowCY(tId, tCol);
+
+  // Decide exit/entry X sides
+  const fromCenterX = from.x + W / 2;
+  const toCenterX   = to.x   + W / 2;
+
+  let fx, tx, cp1x, cp2x;
+
+  if (from.x + W + 5 < to.x) {
+    // from is clearly to the LEFT of to
+    fx = from.x + W;
+    tx = to.x;
+    const gap = tx - fx;
+    cp1x = fx + gap * 0.45;
+    cp2x = tx - gap * 0.45;
+  } else if (from.x > to.x + W + 5) {
+    // from is clearly to the RIGHT of to
+    fx = from.x;
+    tx = to.x + W;
+    const gap = fx - tx;
+    cp1x = fx - gap * 0.45;
+    cp2x = tx + gap * 0.45;
+  } else {
+    // same column or overlapping — route out to the right
+    fx = from.x + W;
+    tx = to.x   + W;
+    const rightX = Math.max(fx, tx) + 50;
+    cp1x = rightX;
+    cp2x = rightX;
+  }
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  let d;
+  if (cp1x !== undefined && cp1x === cp2x && fx === from.x + W && tx === to.x + W) {
+    // Same-side loop
+    d = `M ${fx} ${fy} C ${cp1x} ${fy}, ${cp2x} ${ty}, ${tx} ${ty}`;
+  } else {
+    d = `M ${fx} ${fy} C ${cp1x} ${fy}, ${cp2x} ${ty}, ${tx} ${ty}`;
+  }
+  path.setAttribute('d', d);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width', '1.5');
+  path.setAttribute('stroke-opacity', '0.55');
+  path.setAttribute('marker-end',   `url(#arr_${type})`);
+  path.setAttribute('marker-start', `url(#dot_${type})`);
+
+  path.addEventListener('mouseenter', () => {
+    path.setAttribute('stroke-opacity', '1');
+    path.setAttribute('stroke-width', '2.5');
+  });
+  path.addEventListener('mouseleave', () => {
+    path.setAttribute('stroke-opacity', '0.55');
+    path.setAttribute('stroke-width', '1.5');
+  });
+
+  // Tooltip title
+  const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+  title.textContent = `${fId}.${fCol} → ${tId}.${tCol}  (${type})`;
+  path.appendChild(title);
+
+  svg.appendChild(path);
+});
+
+// ── Stats footer ──────────────────────────────────────────────
+const footer = document.createElement('div');
+footer.style.cssText = `
+  text-align:center; padding: 20px; color: #475569; font-size: 12px;
+  border-top: 1px solid #1e293b; margin-top: 10px;
+`;
+const counts = { '1N': 0, '11': 0, 'NM': 0 };
+CONNS.forEach(c => counts[c[4]]++);
+footer.innerHTML = `
+  총 <strong style="color:#94a3b8">16개</strong> 테이블 &nbsp;·&nbsp;
+  총 <strong style="color:#94a3b8">${CONNS.length}개</strong> 관계선 &nbsp;·&nbsp;
+  1:N <strong style="color:#4ade80">${counts['1N']}</strong>개 &nbsp;
+  1:1 <strong style="color:#a78bfa">${counts['11']}</strong>개 &nbsp;
+  N:M <strong style="color:#fb923c">${counts['NM']}</strong>개
+`;
+document.body.appendChild(footer);
+</script>
+</body>
+</html>
